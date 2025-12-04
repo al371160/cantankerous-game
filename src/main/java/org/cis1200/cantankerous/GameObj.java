@@ -30,6 +30,13 @@ public abstract class GameObj {
     private int vx;
     private int vy;
 
+    private double ax = 0; //accel
+    private double ay = 0;
+    private double fx = 0; // forces applied this frame
+    private double fy = 0;
+    private double mass = 1.0;
+    private double friction = 0.85; // decay per frame
+
     /*
      * Upper bounds of the area in which the object can be positioned. Maximum
      * permissible x, y positions for the upper-left hand corner of the object.
@@ -119,16 +126,43 @@ public abstract class GameObj {
         this.py = Math.min(Math.max(this.py, 0), this.maxY);
     }
 
+    /** applies a force to an object. will decelerate in
+     */
+    public void applyForce(double fx, double fy) {
+        System.out.println("force applying...");
+        this.fx += fx;
+        this.fy += fy;
+    }
+
+
     /**
      * Moves the object by its velocity. Ensures that the object does not go
      * outside its bounds by clipping.
      */
     public void move() {
-        this.px += this.vx;
-        this.py += this.vy;
+        // convert force to acceleration
+        ax = fx / mass;
+        ay = fy / mass;
+
+        // update velocity
+        vx += ax;
+        vy += ay;
+
+        // apply deceleration (friction)
+        vx *= friction;
+        vy *= friction;
+
+        // update position
+        px += vx;
+        py += vy;
+
+        // clear force accumulator
+        fx = 0;
+        fy = 0;
 
         clip();
     }
+
 
     /**
      * Determine whether this game object is currently intersecting another
@@ -222,6 +256,50 @@ public abstract class GameObj {
             return null;
         }
     }
+
+    /**
+     * Returns the collision angle (0–360 degrees) from this object to another.
+     * 0°   = pointing right
+     * 90°  = down
+     * 180° = left
+     * 270° = up
+     *
+     * Returns -1 if there will NOT be an intersection.
+     */
+    public double collisionAngle(GameObj that) {
+        if (!this.willIntersect(that)) {
+            return -1;
+        }
+
+        double halfThisW = this.width / 2.0;
+        double halfThisH = this.height / 2.0;
+        double halfThatW = that.width / 2.0;
+        double halfThatH = that.height / 2.0;
+
+        // center points
+        double cx = this.px + halfThisW;
+        double cy = this.py + halfThisH;
+        double ox = that.px + halfThatW;
+        double oy = that.py + halfThatH;
+
+        // difference vector
+        double dx = ox - cx;
+        double dy = oy - cy;
+
+        // atan2 returns angle in radians, GUI coordinates have inverted Y
+        double angleRad = Math.atan2(dy, dx);
+
+        // convert to degrees
+        double angleDeg = Math.toDegrees(angleRad);
+
+        // normalize 0-360
+        if (angleDeg < 0) {
+            angleDeg += 360;
+        }
+
+        return angleDeg;
+    }
+
 
     /**
      * Determine whether the game object will hit another object in the next

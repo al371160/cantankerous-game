@@ -14,20 +14,33 @@ import javax.swing.*;
 public class GameCourt extends JPanel {
 
     // the state of the game logic
-    private Square square; // the Black Square, keyboard control
+    //private Square square; // the Black Square, keyboard control
+    private Tank tank;
     private Circle snitch; // the Golden Snitch, bounces
-    private Poison poison; // the Poison Mushroom, doesn't move
+   //private Poison poison; // the Poison Mushroom, doesn't move
 
     private boolean playing = false; // whether the game is running
     private final JLabel status; // Current status text, i.e. "Running..."
 
     // Game constants
-    public static final int COURT_WIDTH = 300;
-    public static final int COURT_HEIGHT = 300;
-    public static final int SQUARE_VELOCITY = 4;
+    public static final int COURT_WIDTH = 1920;
+    public static final int COURT_HEIGHT = 1080;
+    public static final int TANK_VELOCITY = 4;
 
     // Update interval for timer, in milliseconds
     public static final int INTERVAL = 35;
+
+    //sussy input fix
+    private boolean wDown = false;
+    private boolean aDown = false;
+    private boolean sDown = false;
+    private boolean dDown = false;
+
+    double force = 0.7; // smooth acceleration strength
+
+    //spawned objects
+    private java.util.List<Square> squares = new java.util.ArrayList<>();
+
 
     public GameCourt(JLabel status) {
         // creates border around the court area, JComponent method
@@ -51,24 +64,41 @@ public class GameCourt extends JPanel {
         addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_LEFT) {
-                    square.setVx(-SQUARE_VELOCITY);
-                } else if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-                    square.setVx(SQUARE_VELOCITY);
-                } else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-                    square.setVy(SQUARE_VELOCITY);
-                } else if (e.getKeyCode() == KeyEvent.VK_UP) {
-                    square.setVy(-SQUARE_VELOCITY);
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_W -> wDown = true;
+                    case KeyEvent.VK_A -> aDown = true;
+                    case KeyEvent.VK_S -> sDown = true;
+                    case KeyEvent.VK_D -> dDown = true;
                 }
+
             }
 
             @Override
             public void keyReleased(KeyEvent e) {
-                square.setVx(0);
-                square.setVy(0);
-            }
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_W -> wDown = false;
+                    case KeyEvent.VK_A -> aDown = false;
+                    case KeyEvent.VK_S -> sDown = false;
+                    case KeyEvent.VK_D -> dDown = false;
+                }
 
-            // public void keyTyped(KeyEvent e) {}
+            }
+        });
+
+
+        //mouse movement listener:
+        addMouseMotionListener(new MouseMotionAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                tank.trackMouse(e);
+            }
+        });
+
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                tank.shoot(e);
+            }
         });
 
         this.status = status;
@@ -78,9 +108,12 @@ public class GameCourt extends JPanel {
      * (Re-)set the game to its initial state.
      */
     public void reset() {
-        square = new Square(COURT_WIDTH, COURT_HEIGHT, Color.BLACK);
-        poison = new Poison(COURT_WIDTH, COURT_HEIGHT);
+        //square = new Square(COURT_WIDTH, COURT_HEIGHT, Color.BLACK);
+        tank = new Tank(150,150, COURT_WIDTH, COURT_HEIGHT);
+        //poison = new Poison(COURT_WIDTH, COURT_HEIGHT);
         snitch = new Circle(COURT_WIDTH, COURT_HEIGHT, Color.YELLOW);
+
+        spawnObjects();
 
         playing = true;
         status.setText("Running...");
@@ -89,6 +122,74 @@ public class GameCourt extends JPanel {
         requestFocusInWindow();
     }
 
+    public void spawnObjects() {
+        squares.clear();
+
+        java.util.Random rand = new java.util.Random();
+
+        int numSquares = 70; // change this to spawn more/less
+
+        Rectangle tankRect = new Rectangle(
+                tank.getPx(),
+                tank.getPy(),
+                tank.getWidth(),
+                tank.getHeight()
+        );
+
+        for (int i = 0; i < numSquares; i++) {
+            int x, y;
+
+            // generate a random position not overlapping the tank
+            do {
+                x = rand.nextInt(COURT_WIDTH - Square.SIZE);
+                y = rand.nextInt(COURT_HEIGHT - Square.SIZE);
+            } while (tankRect.intersects(new Rectangle(x, y, Square.SIZE, Square.SIZE)));
+
+            Square sq = new Square(COURT_WIDTH, COURT_HEIGHT, Color.BLUE);
+
+            // place square manually
+            sq.setPx(x);
+            sq.setPy(y);
+
+            squares.add(sq);
+        }
+    }
+
+
+    public void applyMovementForces() {
+
+
+        if (wDown) tank.applyForce(0, -force);
+        if (sDown) tank.applyForce(0, force);
+        if (aDown) tank.applyForce(-force, 0);
+        if (dDown) tank.applyForce(force, 0);
+    }
+
+    public void applyRepulsion(GameObj a, GameObj b) {
+        double ax = a.getPx() + a.getWidth() / 2.0;
+        double ay = a.getPy() + a.getHeight() / 2.0;
+
+        double bx = b.getPx() + b.getWidth() / 2.0;
+        double by = b.getPy() + b.getHeight() / 2.0;
+
+        double dx = ax - bx;
+        double dy = ay - by;
+
+        double dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist == 0) dist = 0.01;
+
+        double strength = 1.5; // tweak for how strong the push is
+
+        // Normalize the direction
+        double nx = dx / dist;
+        double ny = dy / dist;
+
+        // Apply opposite forces
+        a.applyForce(nx * strength, ny * strength);
+        b.applyForce(-nx * strength, -ny * strength);
+    }
+
+
     /**
      * This method is called every time the timer defined in the constructor
      * triggers.
@@ -96,21 +197,44 @@ public class GameCourt extends JPanel {
     void tick() {
         if (playing) {
             // advance the square and snitch in their current direction.
-            square.move();
+            tank.move();
             snitch.move();
+            applyMovementForces();
+
+            for (GameObj a : squares) {
+                for (GameObj b : squares) {
+                    if (a == b) continue;
+
+                    if (a.intersects(b)) {
+                        applyRepulsion(a, b);
+                    }
+                }
+            }
+
 
             // make the snitch bounce off walls...
             snitch.bounce(snitch.hitWall());
             // ...and the mushroom
-            snitch.bounce(snitch.hitObj(poison));
+
+            for (Square sq : squares) {
+                snitch.bounce(snitch.hitObj(sq));
+            }
 
             // check for the game end conditions
-            if (square.intersects(poison)) {
+           /* if (tank.intersects(poison)) {
                 playing = false;
                 status.setText("You lose!");
-            } else if (square.intersects(snitch)) {
+            } else if (tank.intersects(snitch)) {
                 playing = false;
                 status.setText("You win!");
+            } */
+
+            // collisions between tank and squares
+            for (Square sq : squares) {
+                if (tank.intersects(sq)) {
+                    playing = false;
+                    status.setText("Hit a square — game over!");
+                }
             }
 
             // update the display
@@ -121,9 +245,13 @@ public class GameCourt extends JPanel {
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
-        square.draw(g);
-        poison.draw(g);
+        tank.draw(g);
+        //poison.draw(g);
         snitch.draw(g);
+
+        for (Square sq : squares) {
+            sq.draw(g);
+        }
     }
 
     @Override
