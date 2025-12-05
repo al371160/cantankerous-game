@@ -40,7 +40,7 @@ public class Poison extends GameObj {
     }
 
     @Override
-    public void draw(Graphics g) {
-        g.drawImage(img, this.getPx(), this.getPy(), this.getWidth(), this.getHeight(), null);
+    public void draw(Graphics g, double camX, double camY) {
+        g.drawImage(img, (int)(getPx() - camX), (int)(getPy() - camY), getWidth(), getHeight(), null);
     }
 }

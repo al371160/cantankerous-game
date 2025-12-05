@@ -14,6 +14,8 @@ public class Square extends GameObj {
     public static final int INIT_VEL_Y = 0;
 
     private final Color color;
+    Color yellow = new Color(255, 232, 105);
+    Color darkYellow = new Color(191, 174, 78);
 
     /**
      * Note that, because we don't need to do anything special when constructing
@@ -26,9 +28,24 @@ public class Square extends GameObj {
         this.color = color;
     }
 
-    @Override
-    public void draw(Graphics g) {
-        g.setColor(this.color);
-        g.fillRect(this.getPx(), this.getPy(), this.getWidth(), this.getHeight());
+
+    public void draw(Graphics g, double camX, double camY) {
+        int x = (int) (this.getPx() - camX);
+        int y = (int) (this.getPy() - camY);
+        int w = this.getWidth();
+        int h = this.getHeight();
+
+        // fill square
+        g.setColor(yellow);
+        g.fillRect(x, y, w, h);
+
+        // draw outline
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setColor(darkYellow);          // or Color.BLACK
+        g2.setStroke(new BasicStroke(2)); // 2-pixel thick outline
+        g2.drawRect(x, y, w, h);
     }
+
+
+
 }

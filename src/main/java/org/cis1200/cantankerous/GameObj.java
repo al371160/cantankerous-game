@@ -19,23 +19,31 @@ public abstract class GameObj {
      * position should always be within bounds:
      * 0 <= px <= maxX 0 <= py <= maxY
      */
-    private int px;
-    private int py;
+    private double px;
+    private double py;
 
     /* Size of object, in pixels. */
     private final int width;
     private final int height;
 
     /* Velocity: number of pixels to move every time move() is called. */
-    private int vx;
-    private int vy;
+    private double vx;
+    private double vy;
 
     private double ax = 0; //accel
     private double ay = 0;
     private double fx = 0; // forces applied this frame
     private double fy = 0;
     private double mass = 1.0;
-    private double friction = 0.85; // decay per frame
+    //private double frictionForce = .2; // decay per frame
+    double maxSpeed = 3; //speed clamp
+    //physics
+    double repulsionStrength = 1; // object repulsion strength
+
+    //health
+    protected int maxHealth = 0;
+    protected int health = 0;
+
 
     /*
      * Upper bounds of the area in which the object can be positioned. Maximum
@@ -48,7 +56,7 @@ public abstract class GameObj {
      * Constructor
      */
     public GameObj(
-            int vx, int vy, int px, int py, int width, int height, int courtwidth,
+            double vx, double vy, double px, double py, int width, int height, int courtwidth,
             int courtheight
     ) {
         this.vx = vx;
@@ -68,18 +76,18 @@ public abstract class GameObj {
     // * GETTERS
     // **********************************************************************************
     public int getPx() {
-        return this.px;
+        return (int) this.px;
     }
 
     public int getPy() {
-        return this.py;
+        return (int) this.py;
     }
 
-    public int getVx() {
+    public double getVx() {
         return this.vx;
     }
 
-    public int getVy() {
+    public double getVy() {
         return this.vy;
     }
 
@@ -90,6 +98,12 @@ public abstract class GameObj {
     public int getHeight() {
         return this.height;
     }
+
+    public void setHealth(int hp) {
+        this.maxHealth = hp;
+        this.health = hp;
+    }
+
 
     // **************************************************************************
     // * SETTERS
@@ -104,13 +118,26 @@ public abstract class GameObj {
         clip();
     }
 
-    public void setVx(int vx) {
+    public void setVx(double vx) {
         this.vx = vx;
     }
 
-    public void setVy(int vy) {
+    public void setVy(double vy) {
         this.vy = vy;
     }
+
+    public int getHealth() {
+        return health;
+    }
+
+    public int getMaxHealth() {
+        return maxHealth;
+    }
+
+    public boolean isDamaged() {
+        return getHealth() < getMaxHealth();
+    }
+
 
     // **************************************************************************
     // * UPDATES AND OTHER METHODS
@@ -129,40 +156,96 @@ public abstract class GameObj {
     /** applies a force to an object. will decelerate in
      */
     public void applyForce(double fx, double fy) {
-        System.out.println("force applying...");
+        //System.out.println("force applying...");
         this.fx += fx;
         this.fy += fy;
     }
 
+    public void applyRepulsion(GameObj a, GameObj b) {
+        double ax = a.getPx() + a.getWidth() / 2.0;
+        double ay = a.getPy() + a.getHeight() / 2.0;
+
+        double bx = b.getPx() + b.getWidth() / 2.0;
+        double by = b.getPy() + b.getHeight() / 2.0;
+
+        double dx = ax - bx;
+        double dy = ay - by;
+
+        double dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist == 0) dist = 0.01;
+
+
+
+        // Normalize the direction
+        double nx = dx / dist;
+        double ny = dy / dist;
+
+        // Apply opposite forces
+        a.applyForce(nx * repulsionStrength, ny * repulsionStrength);
+        b.applyForce(-nx * repulsionStrength, -ny * repulsionStrength);
+    }
 
     /**
      * Moves the object by its velocity. Ensures that the object does not go
      * outside its bounds by clipping.
      */
-    public void move() {
-        // convert force to acceleration
+    public void move(double frictionForce) {
+        // 1. acceleration from forces
         ax = fx / mass;
         ay = fy / mass;
 
-        // update velocity
+        // 2. update velocity
         vx += ax;
         vy += ay;
 
-        // apply deceleration (friction)
-        vx *= friction;
-        vy *= friction;
+        // 3. apply friction
+        vx = applyFriction(vx, frictionForce);
+        vy = applyFriction(vy, frictionForce);
 
-        // update position
+        // 4. clamp speed for stability
+        double speed = Math.sqrt(vx*vx + vy*vy);
+        if (speed > maxSpeed) {
+            vx = vx / speed * maxSpeed;
+            vy = vy / speed * maxSpeed;
+        }
+
+        // 5. update position
         px += vx;
         py += vy;
 
-        // clear force accumulator
         fx = 0;
         fy = 0;
 
         clip();
     }
 
+    private double applyFriction(double v, double coeff) {
+        if (v == 0) return 0;
+
+        // friction proportional to log of speed
+        double reduction = coeff * Math.log(1 + Math.abs(v)); // log(1 + |v|) avoids log(0)
+        v -= Math.signum(v) * reduction;
+
+        // clamp to 0 if we overshoot
+        if (Math.signum(v) != Math.signum(v - Math.signum(v) * reduction)) {
+            v = 0;
+        }
+
+        return v;
+    }
+
+    /**
+     * Health stuff: healthbar ui display, etc
+     *
+     */
+    public void takeDamage(int amount) {
+        health -= amount;
+        if (health < 0) health = 0;
+    }
+
+    public boolean isDead() {
+        return health == 0;
+    }
 
     /**
      * Determine whether this game object is currently intersecting another
@@ -194,10 +277,10 @@ public abstract class GameObj {
      * @return Whether an intersection will occur.
      */
     public boolean willIntersect(GameObj that) {
-        int thisNextX = this.px + this.vx;
-        int thisNextY = this.py + this.vy;
-        int thatNextX = that.px + that.vx;
-        int thatNextY = that.py + that.vy;
+        int thisNextX = (int) (this.px + this.vx);
+        int thisNextY = (int) (this.py + this.vy);
+        int thatNextX = (int) (that.px + that.vx);
+        int thatNextY = (int) (that.py + that.vy);
 
         return (thisNextX + this.width >= thatNextX
                 && thisNextY + this.height >= thatNextY
@@ -382,5 +465,5 @@ public abstract class GameObj {
      *          context in which the object should be drawn (a canvas, a frame,
      *          etc.)
      */
-    public abstract void draw(Graphics g);
+    public abstract void draw(Graphics g, double camX, double camY);
 }

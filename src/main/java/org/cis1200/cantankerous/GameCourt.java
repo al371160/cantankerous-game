@@ -13,6 +13,13 @@ import javax.swing.*;
  */
 public class GameCourt extends JPanel {
 
+    //CAMERA!!
+    private double camX = 0;
+    private double camY = 0;
+    private double camSpeed = 0.1; //interpolate
+
+    //UI variable
+    private UI ui = new UI();
     // the state of the game logic
     //private Square square; // the Black Square, keyboard control
     private Tank tank;
@@ -23,8 +30,8 @@ public class GameCourt extends JPanel {
     private final JLabel status; // Current status text, i.e. "Running..."
 
     // Game constants
-    public static final int COURT_WIDTH = 1920;
-    public static final int COURT_HEIGHT = 1080;
+    public static final int COURT_WIDTH = 1000;
+    public static final int COURT_HEIGHT = 1000;
     public static final int TANK_VELOCITY = 4;
 
     // Update interval for timer, in milliseconds
@@ -36,11 +43,24 @@ public class GameCourt extends JPanel {
     private boolean sDown = false;
     private boolean dDown = false;
 
-    double force = 0.7; // smooth acceleration strength
+    //physics
+    double strength = 0.2; // repel strength
+    double force = 2; // smooth acceleration strength; movementSpeed in object class, might need to be careful
+
+    private int mouseX;
+    private int mouseY;
 
     //spawned objects
     private java.util.List<Square> squares = new java.util.ArrayList<>();
+    private java.util.List<Bullet> bullets = new java.util.ArrayList<>();
 
+    //firing
+    private boolean mouseDown = false;
+    private int fireCooldown = 0;      // counts down each tick
+
+    //upgrades:
+    public int bulletSpeed = 3;
+    public int fireRate = 10;           // ticks between bullets (≈350ms)
 
     public GameCourt(JLabel status) {
         // creates border around the court area, JComponent method
@@ -86,20 +106,60 @@ public class GameCourt extends JPanel {
         });
 
 
-        //mouse movement listener:
         addMouseMotionListener(new MouseMotionAdapter() {
             @Override
             public void mouseMoved(MouseEvent e) {
-                tank.trackMouse(e);
+                mouseX = e.getX();
+                mouseY = e.getY();
+                if (tank != null) {
+                    // convert screen coords to world coords using camera offset
+                    tank.trackMouse(mouseX, mouseY,camX, camY);
+                }
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                mouseX = e.getX();
+                mouseY = e.getY();
+                if (tank != null) {
+                    // convert screen coords to world coords using camera offset
+                    tank.trackMouse(mouseX, mouseY,camX, camY);
+                }
             }
         });
 
+
+        // shooting
         addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseClicked(MouseEvent e) {
-                tank.shoot(e);
+            public void mousePressed(MouseEvent e) {
+                mouseDown = true;
+                mouseX = e.getX();
+                mouseY = e.getY();
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                mouseDown = false;
             }
         });
+
+
+
+        //shooting
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                mouseDown = true;
+                //fireBullet();
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                mouseDown = false;
+            }
+        });
+
 
         this.status = status;
     }
@@ -108,17 +168,36 @@ public class GameCourt extends JPanel {
      * (Re-)set the game to its initial state.
      */
     public void reset() {
-        //square = new Square(COURT_WIDTH, COURT_HEIGHT, Color.BLACK);
-        tank = new Tank(150,150, COURT_WIDTH, COURT_HEIGHT);
-        //poison = new Poison(COURT_WIDTH, COURT_HEIGHT);
+        // Clear bullets
+        bullets.clear();
+
+        // Create tank first
+        tank = new Tank(150, 150, COURT_WIDTH, COURT_HEIGHT);
+        tank.setHealth(100);
+
+        // Create snitch
         snitch = new Circle(COURT_WIDTH, COURT_HEIGHT, Color.YELLOW);
 
+        // Spawn squares
         spawnObjects();
 
+        // Reset UI
+        ui = new UI(); // fresh UI each game
+
+        // Add health bars for squares
+        for (Square sq : squares) {
+            sq.setHealth(50); // ensure health is set
+            ui.addHealthBar(new HealthBar(sq, 30));
+        }
+
+        // Add tank health bar
+        ui.addHealthBar(new HealthBar(tank, 50));
+
+        // Game state
         playing = true;
         status.setText("Running...");
 
-        // Make sure that this component has the keyboard focus
+        // Make sure the panel has keyboard focus
         requestFocusInWindow();
     }
 
@@ -145,20 +224,23 @@ public class GameCourt extends JPanel {
                 y = rand.nextInt(COURT_HEIGHT - Square.SIZE);
             } while (tankRect.intersects(new Rectangle(x, y, Square.SIZE, Square.SIZE)));
 
-            Square sq = new Square(COURT_WIDTH, COURT_HEIGHT, Color.BLUE);
+            Square sq = new Square(COURT_WIDTH, COURT_HEIGHT, Color.YELLOW);
+
 
             // place square manually
             sq.setPx(x);
             sq.setPy(y);
+            //set square health
+            sq.setHealth(50);
+
 
             squares.add(sq);
+
         }
     }
 
 
     public void applyMovementForces() {
-
-
         if (wDown) tank.applyForce(0, -force);
         if (sDown) tank.applyForce(0, force);
         if (aDown) tank.applyForce(-force, 0);
@@ -178,8 +260,6 @@ public class GameCourt extends JPanel {
         double dist = Math.sqrt(dx * dx + dy * dy);
         if (dist == 0) dist = 0.01;
 
-        double strength = 1.5; // tweak for how strong the push is
-
         // Normalize the direction
         double nx = dx / dist;
         double ny = dy / dist;
@@ -195,67 +275,170 @@ public class GameCourt extends JPanel {
      * triggers.
      */
     void tick() {
-        if (playing) {
-            // advance the square and snitch in their current direction.
-            tank.move();
-            snitch.move();
-            applyMovementForces();
+        if (!playing) return;
 
-            for (GameObj a : squares) {
-                for (GameObj b : squares) {
-                    if (a == b) continue;
+        // --- Camera: center on tank ---
+        double targetCamX = tank.getPx() - COURT_WIDTH / 2.0 + tank.getWidth() / 2.0;
+        double targetCamY = tank.getPy() - COURT_HEIGHT / 2.0 + tank.getHeight() / 2.0;
+        camX += (targetCamX - camX) * camSpeed;
+        camY += (targetCamY - camY) * camSpeed;
 
-                    if (a.intersects(b)) {
-                        applyRepulsion(a, b);
+        // --- Movement & input ---
+        applyMovementForces();
+        tank.move(strength);
+        tank.trackMouse(mouseX, mouseY, camX, camY); // mouse in world coords
+        snitch.move(0);
+
+        // --- Shooting ---
+        if (mouseDown && fireCooldown <= 0) {
+            fireBullet();
+            fireCooldown = fireRate;
+        }
+        if (fireCooldown > 0) fireCooldown--;
+
+        for (Bullet bullet : bullets) bullet.move(0);
+
+        // --- Squares interactions ---
+        for (GameObj a : squares) {
+            for (GameObj b : squares) {
+                if (a != b && a.intersects(b)) applyRepulsion(a, b);
+            }
+        }
+
+        // --- Bullet interactions ---
+        java.util.List<Bullet> toRemoveBullets = new java.util.ArrayList<>();
+        java.util.List<Square> toRemoveSquares = new java.util.ArrayList<>();
+
+        for (Bullet bullet : bullets) {
+            for (Square sq : squares) {
+                if (bullet.intersects(sq)) {
+                    applyRepulsion(bullet, sq);
+                    sq.takeDamage(20);
+                    toRemoveBullets.add(bullet);
+
+                    if (sq.isDead()) {
+                        HealthBar hb = ui.getHealthBarFor(sq);
+                        if (hb != null) ui.removeHealthBar(hb);
+                        toRemoveSquares.add(sq);
                     }
                 }
             }
 
 
-            // make the snitch bounce off walls...
-            snitch.bounce(snitch.hitWall());
-            // ...and the mushroom
-
-            for (Square sq : squares) {
-                snitch.bounce(snitch.hitObj(sq));
-            }
-
-            // check for the game end conditions
-           /* if (tank.intersects(poison)) {
-                playing = false;
-                status.setText("You lose!");
-            } else if (tank.intersects(snitch)) {
-                playing = false;
-                status.setText("You win!");
-            } */
-
-            // collisions between tank and squares
-            for (Square sq : squares) {
-                if (tank.intersects(sq)) {
-                    playing = false;
-                    status.setText("Hit a square — game over!");
-                }
-            }
-
-            // update the display
-            repaint();
         }
+
+        bullets.removeAll(toRemoveBullets);
+        squares.removeAll(toRemoveSquares);
+
+        // --- Snitch bounces ---
+        snitch.bounce(snitch.hitWall());
+        for (Square sq : squares) snitch.bounce(snitch.hitObj(sq));
+
+        // --- Tank collisions ---
+        for (GameObj sq : squares) {
+            if (tank.intersects(sq)) applyRepulsion(sq, tank);
+            sq.bounce(sq.hitWall());
+            sq.move(0.01);
+        }
+
+        // --- Health bars: show if damaged, remove if healed ---
+        updateHealthBars();
+
+        // --- Render ---
+        repaint();
     }
+
 
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
-        tank.draw(g);
-        //poison.draw(g);
-        snitch.draw(g);
+
+        // draw background grid first
+        drawGrid(g, camX, camY);
+
+        //double camX = tank.getPx() - COURT_WIDTH / 2.0;
+        //double camY = tank.getPy() - COURT_HEIGHT / 2.0;
 
         for (Square sq : squares) {
-            sq.draw(g);
+            sq.draw(g, camX, camY);
         }
+
+        snitch.draw(g, camX, camY);
+
+        for (Bullet bullet : bullets) {
+            bullet.draw(g, camX, camY);
+        }
+
+        tank.draw(g, camX, camY);
+
+        ui.draw(g, camX, camY); // pass camera coordinates here
     }
+
+
 
     @Override
     public Dimension getPreferredSize() {
         return new Dimension(COURT_WIDTH, COURT_HEIGHT);
     }
+
+    private void fireBullet() {
+        Point tip = tank.getTurretTip();
+
+        double bulletVelX = bulletSpeed * Math.cos(tank.angleRad);
+        double bulletVelY = bulletSpeed * Math.sin(tank.angleRad);
+
+        Bullet bullet = new Bullet(
+                bulletVelX,
+                bulletVelY,
+                tip.x - Bullet.SIZE / 2.0,
+                tip.y - Bullet.SIZE / 2.0,
+                COURT_WIDTH,
+                COURT_HEIGHT,
+                Color.blue
+        );
+        // Apply recoil to tank
+        double recoilStrength = 0.5;
+        tank.applyForce(-bulletVelX * recoilStrength, -bulletVelY * recoilStrength);
+
+        bullets.add(bullet);
+    }
+
+    private void updateHealthBars() {
+        // Squares
+        for (Square sq : squares) {
+            handleHealthBar(sq, 30);
+        }
+        // Tank
+        handleHealthBar(tank, 50);
+    }
+
+    private void handleHealthBar(GameObj obj, int width) {
+        HealthBar hb = ui.getHealthBarFor(obj);
+        if (obj.isDamaged() && hb == null) {
+            ui.addHealthBar(new HealthBar(obj, width));
+        } else if (!obj.isDamaged() && hb != null) {
+            ui.removeHealthBar(hb);
+        }
+    }
+
+    private void drawGrid(Graphics g, double camX, double camY) {
+        g.setColor(Color.LIGHT_GRAY); // grid color
+        int gridSize = 20;             // distance between lines
+
+        int width = getWidth();
+        int height = getHeight();
+
+        // vertical lines
+        for (int x = (int)(-camX % gridSize); x < width; x += gridSize) {
+            g.drawLine(x, 0, x, height);
+        }
+
+        // horizontal lines
+        for (int y = (int)(-camY % gridSize); y < height; y += gridSize) {
+            g.drawLine(0, y, width, y);
+        }
+    }
+
+
+
 }
