@@ -38,7 +38,7 @@ public abstract class GameObj {
     //private double frictionForce = .2; // decay per frame
     double maxSpeed = 3; //speed clamp
     //physics
-    double repulsionStrength = 1; // object repulsion strength
+    //double repulsionStrength = 1; // object repulsion strength
 
     //health
     protected int maxHealth = 0;
@@ -104,6 +104,10 @@ public abstract class GameObj {
         this.health = hp;
     }
 
+    public void upgradeHealth(int hp) {
+        this.maxHealth = hp;
+    }
+
 
     // **************************************************************************
     // * SETTERS
@@ -161,29 +165,7 @@ public abstract class GameObj {
         this.fy += fy;
     }
 
-    public void applyRepulsion(GameObj a, GameObj b) {
-        double ax = a.getPx() + a.getWidth() / 2.0;
-        double ay = a.getPy() + a.getHeight() / 2.0;
 
-        double bx = b.getPx() + b.getWidth() / 2.0;
-        double by = b.getPy() + b.getHeight() / 2.0;
-
-        double dx = ax - bx;
-        double dy = ay - by;
-
-        double dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist == 0) dist = 0.01;
-
-
-
-        // Normalize the direction
-        double nx = dx / dist;
-        double ny = dy / dist;
-
-        // Apply opposite forces
-        a.applyForce(nx * repulsionStrength, ny * repulsionStrength);
-        b.applyForce(-nx * repulsionStrength, -ny * repulsionStrength);
-    }
 
     /**
      * Moves the object by its velocity. Ensures that the object does not go

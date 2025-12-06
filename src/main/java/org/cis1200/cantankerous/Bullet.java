@@ -2,46 +2,38 @@ package org.cis1200.cantankerous;
 
 import java.awt.*;
 
-/**
- * A basic game object starting in the upper left corner of the game court. It
- * is displayed as a circle of a specified color.
- */
 public class Bullet extends GameObj {
     public static final int SIZE = 15;
-    public static final int INIT_POS_X = 170;
-    public static final int INIT_POS_Y = 170;
-    public static final double INIT_VEL_X = 2;
-    public static final double INIT_VEL_Y = 3;
 
-    final private Color color;
-
+    public int penetration;     // how many objects it can hit
+    public double lifetime;     // current remaining lifetime
+    public double maxLifetime;  // calculated based on penetration
 
     Color blue = new Color(0, 178, 225);
     Color darkBlue = new Color(2, 133, 167);
 
-    public Bullet(double velX, double velY, double posX, double posY, int courtWidth, int courtHeight, Color color) {
-        super(velX, velY, posX, posY, SIZE, SIZE, courtWidth, courtHeight);
-
-        this.color = color;
+    public Bullet(double vx, double vy, double px, double py,
+                  int courtWidth, int courtHeight, Color color, int penetration) {
+        super(vx, vy, px, py, SIZE, SIZE, courtWidth, courtHeight);
+        this.penetration = penetration;
+        this.maxLifetime = penetration * 67; // Example: more penetration = longer life
+        this.lifetime = this.maxLifetime;
     }
-
 
     public void draw(Graphics g, double camX, double camY) {
         int x = (int) (getPx() - camX);
         int y = (int) (getPy() - camY);
-        int w = getWidth();
-        int h = getHeight();
 
-        // fill bullet
         g.setColor(blue);
-        g.fillOval(x, y, w, h);
+        g.fillOval(x, y, SIZE, SIZE);
 
-        // draw outline
         Graphics2D g2 = (Graphics2D) g;
-        g2.setColor(darkBlue);          // outline color
-        g2.setStroke(new BasicStroke(2)); // 2-pixel thick
-        g2.drawOval(x, y, w, h);
+        g2.setColor(darkBlue);
+        g2.setStroke(new BasicStroke(2));
+        g2.drawOval(x, y, SIZE, SIZE);
     }
 
-
+    public void upgradeBulletSpeed() {
+        //this.maxSpeed *= 1.2;
+    }
 }

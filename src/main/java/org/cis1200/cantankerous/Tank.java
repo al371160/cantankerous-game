@@ -1,31 +1,50 @@
 package org.cis1200.cantankerous;
 
 import java.awt.*;
-import java.awt.event.MouseEvent;
+import java.util.List;
 
-public class Tank extends GameObj {
+public abstract class Tank extends GameObj {
 
-    public double angleDeg = 0; // tank's current facing direction in degrees
-    public double angleRad = 0;
+    protected double angleDeg = 0;
+    protected double angleRad = 0;
 
-    public double cx;
-    public double cy;
+    protected int health = 100;
+    protected int level = 1;
+    protected int xp = 0;
+    protected int upgradePoints = 0;
 
-    Color blue = new Color(0, 178, 225);
-    Color darkBlue = new Color(2, 133, 167);
-    Color lightGray = new Color(153, 153, 153);
-    Color darkGray = new Color(114, 114, 114);
+    protected int maxHealth = 100;
+    protected int healthRegen = 1;
+    protected double bulletSpeed = 3;
+    protected double bodyDamage = 1;
+    protected double bulletDamage = 20;
+    protected double recoilStrength = 0.3;
+    protected int bulletPenetration = 1;
 
+    protected double movementSpeed = 3;
+
+    protected double bulletSpread = 0;
+    protected int fireRate = 10;
+
+    // Multipliers for upgrades
+    protected double bulletSpeedMultiplier = 1.0;
+    protected double bulletDamageMultiplier = 1.0;
+    protected double bodyDamageMultiplier = 1.0;
+    protected double movementSpeedMultiplier = 1.0;
+    protected double healthRegenMultiplier = 1.0;
+    protected double maxHealthMultiplier = 1.0;
+    protected double bulletPenetrationMultiplier = 1.0;
+    protected double fireRateMultiplier = 1.0;
 
     public Tank(int px, int py, int courtWidth, int courtHeight) {
         super(0, 0, px, py, 30, 30, courtWidth, courtHeight);
+        updateFireRate(); // initialize fire rate
     }
 
-
+    // ===== Mouse Tracking =====
     public void trackMouse(int mx, int my, double camX, double camY) {
         double worldMouseX = mx + camX;
         double worldMouseY = my + camY;
-
         double cx = getPx() + getWidth() / 2.0;
         double cy = getPy() + getHeight() / 2.0;
 
@@ -34,66 +53,126 @@ public class Tank extends GameObj {
 
         angleRad = Math.atan2(dy, dx);
         angleDeg = Math.toDegrees(angleRad);
-
         if (angleDeg < 0) angleDeg += 360;
     }
-
 
     public Point getTurretTip() {
         double cx = getPx() + getWidth() / 2.0;
         double cy = getPy() + getHeight() / 2.0;
-
-        double turretLength = getWidth() / 2.0 + 10; // adjust to match drawing
+        double turretLength = getWidth() / 2.0 + 10;
         double tipX = cx + turretLength * Math.cos(angleRad);
         double tipY = cy + turretLength * Math.sin(angleRad);
-
         return new Point((int) tipX, (int) tipY);
     }
 
-    /**
-     * Draw the tank as a rotated rectangle with a turret line, camera-aware.
-     */
-    /**
-     * Draw the tank as a rotated rectangle with a turret line, camera-aware, with outlines.
-     */
-    public void draw(Graphics g, double camX, double camY) {
-        Graphics2D g2 = (Graphics2D) g;
+    // ===== Abstract Tank Behaviors =====
+    public abstract void draw(Graphics g, double camX, double camY);
+    public abstract void fire(List<Bullet> bullets);
+    public abstract String getName();
+    public abstract Tank[] getEvolutionOptions();
 
-        int cx = (int) (getPx() - camX + getWidth() / 2.0);
-        int cy = (int) (getPy() - camY + getHeight() / 2.0);
+    // ===== Copy State =====
+    public void copyStateFrom(Tank oldTank) {
+        this.health = oldTank.health;
+        this.maxHealth = oldTank.maxHealth;
+        this.level = oldTank.level;
+        this.xp = oldTank.xp;
+        this.upgradePoints = oldTank.upgradePoints;
+        this.bulletSpeed = oldTank.bulletSpeed;
+        this.bodyDamage = oldTank.bodyDamage;
+        this.bulletDamage = oldTank.bulletDamage;
+        this.recoilStrength = oldTank.recoilStrength;
+        this.bulletPenetration = oldTank.bulletPenetration;
 
-        // save old transform
-        var old = g2.getTransform();
+        this.bulletSpeedMultiplier = oldTank.bulletSpeedMultiplier;
+        this.bodyDamageMultiplier = oldTank.bodyDamageMultiplier;
+        this.bulletDamageMultiplier = oldTank.bulletDamageMultiplier;
+        this.movementSpeedMultiplier = oldTank.movementSpeedMultiplier;
+        this.healthRegenMultiplier = oldTank.healthRegenMultiplier;
+        this.maxHealthMultiplier = oldTank.maxHealthMultiplier;
+        this.bulletPenetrationMultiplier = oldTank.bulletPenetrationMultiplier;
+        this.fireRateMultiplier = oldTank.fireRateMultiplier;
+    }
 
-        // rotate around tank center
-        g2.rotate(Math.toRadians(angleDeg), cx, cy);
+    // ===== Damage =====
+    public void takeDamage(int dmg) {
+        health -= dmg;
+        if (health < 0) health = 0;
+    }
 
-        // ---------- Draw Turret ----------
-        int turretWidth = getHeight() - 12;
-        int turretX = (int) (getPx() - camX + 20);
-        int turretY = (int) (getPy() - camY + 6);
+    public boolean isDead() {
+        return health <= 0;
+    }
 
-        g2.setColor(lightGray);
-        g2.fillRect(turretX, turretY, getWidth() - 7, turretWidth);
+    // ===== Upgrade Methods =====
+    public void upgradeMovementSpeed(double factor) {
+        movementSpeedMultiplier *= factor;
+        this.maxSpeed = getCurrentMovementSpeed();
+    }
 
-        // outline for turret
-        g2.setColor(darkGray);
-        g2.setStroke(new BasicStroke(2)); // 2-pixel wide outline
-        g2.drawRect(turretX, turretY, getWidth() - 7, turretWidth);
+    public void upgradeBulletSpeed(double factor) {
+        bulletSpeedMultiplier *= factor;
+    }
 
-        // ---------- Draw Tank Body ----------
-        int bodyX = (int) (getPx() - camX);
-        int bodyY = (int) (getPy() - camY);
+    public void upgradeBulletDamage(double factor) {
+        bulletDamageMultiplier *= factor;
+    }
 
-        g2.setColor(blue);
-        g2.fillOval(bodyX, bodyY, getWidth(), getHeight());
+    public void upgradeBodyDamage(double factor) {
+        bodyDamageMultiplier *= factor;
+    }
 
-        // outline for body
-        g2.setColor(darkBlue);
-        g2.setStroke(new BasicStroke(2));
-        g2.drawOval(bodyX, bodyY, getWidth(), getHeight());
+    public void upgradeMaxHealth(double factor) {
+        maxHealthMultiplier *= factor;
+        health = getCurrentMaxHealth(); // heal to new max
+    }
 
-        // restore transform
-        g2.setTransform(old);
+    public void upgradeBulletPenetration(double factor) {
+        bulletPenetrationMultiplier *= factor;
+    }
+
+    public void upgradeFireRate(double factor) {
+        fireRateMultiplier *= factor;
+        updateFireRate();
+    }
+
+    public void upgradeHealthRegen(double factor) {
+        healthRegenMultiplier *= factor;
+    }
+
+    // ===== Get Current Values =====
+    public double getCurrentHealthRegen() {
+        return healthRegen*healthRegenMultiplier;
+    }
+    public double getCurrentMovementSpeed() {
+        return movementSpeed * movementSpeedMultiplier;
+    }
+
+    public double getCurrentBulletSpeed() {
+        return bulletSpeed * bulletSpeedMultiplier;
+    }
+
+    public int getCurrentBulletDamage() {
+        return (int)(bulletDamage * bulletDamageMultiplier);
+    }
+
+    public double getCurrentBodyDamage() {
+        return bodyDamage * bodyDamageMultiplier;
+    }
+
+    public int getCurrentMaxHealth() {
+        return (int)(maxHealth * maxHealthMultiplier);
+    }
+
+    public int getCurrentBulletPenetration() {
+        return (int)(bulletPenetration * bulletPenetrationMultiplier);
+    }
+
+    public int getCurrentFireRate() {
+        return Math.max(1, (int)(fireRate * fireRateMultiplier));
+    }
+
+    public void updateFireRate() {
+        fireRate = getCurrentFireRate();
     }
 }

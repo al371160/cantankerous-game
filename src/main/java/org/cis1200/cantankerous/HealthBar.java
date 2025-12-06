@@ -17,7 +17,7 @@ public class HealthBar {
         if (target.maxHealth == 0) return;
 
         int x = (int)(target.getPx() - camX + target.getWidth()/2 - width/2); // center above object
-        int y = (int)(target.getPy() - camY - 10); // 10px above
+        int y = (int)(target.getPy() - camY - 15); // 10px above
 
         double hpPercent = target.getHealth() / (double) target.maxHealth;
         int filledWidth = (int) (width * hpPercent);

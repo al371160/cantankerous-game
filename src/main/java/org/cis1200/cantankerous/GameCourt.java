@@ -30,9 +30,11 @@ public class GameCourt extends JPanel {
     private final JLabel status; // Current status text, i.e. "Running..."
 
     // Game constants
-    public static final int COURT_WIDTH = 1000;
-    public static final int COURT_HEIGHT = 1000;
-    public static final int TANK_VELOCITY = 4;
+    public static final int COURT_WIDTH = 5000;
+    public static final int COURT_HEIGHT = 3000;
+    public static final int WINDOW_WIDTH = 960;
+    public static final int WINDOW_HEIGHT = 540;
+    //public static final int TANK_VELOCITY = 4;
 
     // Update interval for timer, in milliseconds
     public static final int INTERVAL = 35;
@@ -44,7 +46,7 @@ public class GameCourt extends JPanel {
     private boolean dDown = false;
 
     //physics
-    double strength = 0.2; // repel strength
+    double strength = 0.2; // acceleration strength
     double force = 2; // smooth acceleration strength; movementSpeed in object class, might need to be careful
 
     private int mouseX;
@@ -57,10 +59,59 @@ public class GameCourt extends JPanel {
     //firing
     private boolean mouseDown = false;
     private int fireCooldown = 0;      // counts down each tick
+    public double recoilStrength = 0.5; /** should be CHANGED PER TANK!!! */
 
-    //upgrades:
-    public int bulletSpeed = 3;
-    public int fireRate = 10;           // ticks between bullets (≈350ms)
+    /** \/\/\/\/\/\/\/\/\/[    UPGRADES!!!!!    ]/\/\/\/\/\/\/\/\//\/\\/\/\/\/\*/
+    // XP AND LEVELS
+    private int xp = 0;
+    private int xpToLevel = 100;
+    private int upgradePoints = 0;    // points you can spend upgrading
+    private int level = 1;            // player level
+    //ITEM XP GAINS
+    private int squareXP = 8000;
+    //UPGRADE BAR
+    private boolean showUpgradeBar = true;   // Q toggles this
+    private static final int MAX_UPGRADE_LEVEL = 8;
+
+    private String format(double d) {
+        return String.format("%.2f", d);
+    }
+
+
+
+    /**
+    //STATS
+    public int healthRegen = 1;
+    public int tankMaxHealth = 750;
+    public double bodyDamage = 1;
+    public double bulletSpeed = 5;
+    public int bulletDamage = 30;
+    public int bulletPenetration = 1;
+    //public int fireRate = 10;           // ticks between bullets (≈350ms)
+    // public int movementSpeed = 1; (this variable is unused as movement speed is upgraded in
+
+
+    // Upgrade multipliers
+    private final double healthRegenMultiplier = 1.2;
+    private final double tankMaxHealthMultiplier = 1.3;
+    private final double bodyDamageMultiplier = 1.1;
+    private final double bulletSpeedMultiplier = 1.2;
+    private final double bulletDamageMultiplier = 1.3;
+    private final double bulletPenetrationMultiplier = 1.1;
+    private final double fireRateMultiplier = 0.9; // lower is faster
+    private final double movementSpeedMultiplier = 2;
+
+     */
+    //level trackers:
+    private int lvlHealthRegen = 0;
+    private int lvlTankMaxHealth = 0;
+    private int lvlBodyDamage = 0;
+    private int lvlBulletSpeed = 0;
+    private int lvlBulletDamage = 0;
+    private int lvlBulletPenetration = 0;
+    private int lvlFireRate = 0;
+    private int lvlMovementSpeed = 0;
+
 
     public GameCourt(JLabel status) {
         // creates border around the court area, JComponent method
@@ -85,10 +136,19 @@ public class GameCourt extends JPanel {
             @Override
             public void keyPressed(KeyEvent e) {
                 switch (e.getKeyCode()) {
+                    case KeyEvent.VK_Q -> showUpgradeBar = !showUpgradeBar;
                     case KeyEvent.VK_W -> wDown = true;
                     case KeyEvent.VK_A -> aDown = true;
                     case KeyEvent.VK_S -> sDown = true;
                     case KeyEvent.VK_D -> dDown = true;
+                    case KeyEvent.VK_1 -> upgrade(1);
+                    case KeyEvent.VK_2 -> upgrade(2);
+                    case KeyEvent.VK_3 -> upgrade(3);
+                    case KeyEvent.VK_4 -> upgrade(4);
+                    case KeyEvent.VK_5 -> upgrade(5);
+                    case KeyEvent.VK_6 -> upgrade(6);
+                    case KeyEvent.VK_7 -> upgrade(7);
+                    case KeyEvent.VK_8 -> upgrade(8);
                 }
 
             }
@@ -172,8 +232,9 @@ public class GameCourt extends JPanel {
         bullets.clear();
 
         // Create tank first
-        tank = new Tank(150, 150, COURT_WIDTH, COURT_HEIGHT);
-        tank.setHealth(100);
+        tank = new BaseTank(2500, 1500, COURT_WIDTH, COURT_HEIGHT);
+        tank.setHealth(tank.getCurrentMaxHealth());
+
 
         // Create snitch
         snitch = new Circle(COURT_WIDTH, COURT_HEIGHT, Color.YELLOW);
@@ -239,15 +300,15 @@ public class GameCourt extends JPanel {
         }
     }
 
-
     public void applyMovementForces() {
-        if (wDown) tank.applyForce(0, -force);
-        if (sDown) tank.applyForce(0, force);
-        if (aDown) tank.applyForce(-force, 0);
-        if (dDown) tank.applyForce(force, 0);
+        if (wDown) tank.applyForce(0, -force * tank.getCurrentMovementSpeed());
+        if (sDown) tank.applyForce(0, force * tank.getCurrentMovementSpeed());
+        if (aDown) tank.applyForce(-force * tank.getCurrentMovementSpeed(), 0);
+        if (dDown) tank.applyForce(force * tank.getCurrentMovementSpeed(), 0);
     }
 
-    public void applyRepulsion(GameObj a, GameObj b) {
+
+    public void applyRepulsion(GameObj a, GameObj b, double strength) {
         double ax = a.getPx() + a.getWidth() / 2.0;
         double ay = a.getPy() + a.getHeight() / 2.0;
 
@@ -278,8 +339,8 @@ public class GameCourt extends JPanel {
         if (!playing) return;
 
         // --- Camera: center on tank ---
-        double targetCamX = tank.getPx() - COURT_WIDTH / 2.0 + tank.getWidth() / 2.0;
-        double targetCamY = tank.getPy() - COURT_HEIGHT / 2.0 + tank.getHeight() / 2.0;
+        double targetCamX = tank.getPx() - WINDOW_WIDTH / 2.0 + tank.getWidth() / 2.0;
+        double targetCamY = tank.getPy() - WINDOW_HEIGHT / 2.0 + tank.getHeight() / 2.0;
         camX += (targetCamX - camX) * camSpeed;
         camY += (targetCamY - camY) * camSpeed;
 
@@ -289,57 +350,87 @@ public class GameCourt extends JPanel {
         tank.trackMouse(mouseX, mouseY, camX, camY); // mouse in world coords
         snitch.move(0);
 
-        // --- Shooting ---
-        if (mouseDown && fireCooldown <= 0) {
-            fireBullet();
-            fireCooldown = fireRate;
-        }
-        if (fireCooldown > 0) fireCooldown--;
-
-        for (Bullet bullet : bullets) bullet.move(0);
-
-        // --- Squares interactions ---
-        for (GameObj a : squares) {
-            for (GameObj b : squares) {
-                if (a != b && a.intersects(b)) applyRepulsion(a, b);
-            }
-        }
-
         // --- Bullet interactions ---
         java.util.List<Bullet> toRemoveBullets = new java.util.ArrayList<>();
         java.util.List<Square> toRemoveSquares = new java.util.ArrayList<>();
 
+        // --- Shooting ---
+        if (mouseDown && fireCooldown <= 0) {
+            tank.fire(bullets);
+            fireCooldown = tank.fireRate; // use tank-specific fire rate
+        }
+
+        if (fireCooldown > 0) fireCooldown--;
+
+        for (Bullet bullet : bullets) {
+            bullet.move(0);
+            bullet.lifetime--;
+            if (bullet.lifetime <= 0) {
+                toRemoveBullets.add(bullet);
+            }
+        }
+
+        // --- Squares interactions ---
+        for (GameObj a : squares) {
+            for (GameObj b : squares) {
+                if (a != b && a.intersects(b)) applyRepulsion(a, b, 1);
+            }
+        }
+
+
         for (Bullet bullet : bullets) {
             for (Square sq : squares) {
                 if (bullet.intersects(sq)) {
-                    applyRepulsion(bullet, sq);
-                    sq.takeDamage(20);
-                    toRemoveBullets.add(bullet);
+                    applyRepulsion(bullet, sq, 2);
+                    sq.takeDamage(tank.getCurrentBulletDamage());
+                    bullet.penetration--;
+
+
 
                     if (sq.isDead()) {
+                        // remove health bar
                         HealthBar hb = ui.getHealthBarFor(sq);
                         if (hb != null) ui.removeHealthBar(hb);
                         toRemoveSquares.add(sq);
+
+                        // award XP
+                        gainXP(squareXP);   // you can tune the amount
                     }
+
                 }
             }
 
 
         }
 
-        bullets.removeAll(toRemoveBullets);
-        squares.removeAll(toRemoveSquares);
 
         // --- Snitch bounces ---
         snitch.bounce(snitch.hitWall());
         for (Square sq : squares) snitch.bounce(snitch.hitObj(sq));
 
         // --- Tank collisions ---
-        for (GameObj sq : squares) {
-            if (tank.intersects(sq)) applyRepulsion(sq, tank);
+        for (Square sq : squares) {
+            if (tank.intersects(sq)) {
+                applyRepulsion(sq, tank, 5);
+                sq.takeDamage(50);
+                tank.takeDamage(50);
+                if (sq.isDead()) {
+                    // remove health bar
+                    HealthBar hb = ui.getHealthBarFor(sq);
+                    if (hb != null) ui.removeHealthBar(hb);
+                    toRemoveSquares.add(sq);
+
+                    // award XP
+                    gainXP(20);   // you can tune the amount
+                }
+
+            }
             sq.bounce(sq.hitWall());
-            sq.move(0.01);
+            sq.move(0.06);
         }
+
+        bullets.removeAll(toRemoveBullets);
+        squares.removeAll(toRemoveSquares);
 
         // --- Health bars: show if damaged, remove if healed ---
         updateHealthBars();
@@ -372,16 +463,18 @@ public class GameCourt extends JPanel {
         tank.draw(g, camX, camY);
 
         ui.draw(g, camX, camY); // pass camera coordinates here
+        drawXPBar(g);
+        drawUpgradeBars(g);
     }
 
 
 
     @Override
     public Dimension getPreferredSize() {
-        return new Dimension(COURT_WIDTH, COURT_HEIGHT);
+        return new Dimension(WINDOW_WIDTH, WINDOW_HEIGHT);
     }
 
-    private void fireBullet() {
+    /*private void fireBullet() {
         Point tip = tank.getTurretTip();
 
         double bulletVelX = bulletSpeed * Math.cos(tank.angleRad);
@@ -394,14 +487,18 @@ public class GameCourt extends JPanel {
                 tip.y - Bullet.SIZE / 2.0,
                 COURT_WIDTH,
                 COURT_HEIGHT,
-                Color.blue
+                Color.blue, 2
         );
-        // Apply recoil to tank
-        double recoilStrength = 0.5;
+
+        bullet.maxSpeed = bulletSpeed;
+        bullet.penetration = bulletPenetration;
+        bullet.maxLifetime = bullet.penetration * 67; // example: base 100, +20 per penetration
+        bullet.lifetime = bullet.maxLifetime;
+
         tank.applyForce(-bulletVelX * recoilStrength, -bulletVelY * recoilStrength);
 
         bullets.add(bullet);
-    }
+    } */
 
     private void updateHealthBars() {
         // Squares
@@ -437,6 +534,217 @@ public class GameCourt extends JPanel {
         for (int y = (int)(-camY % gridSize); y < height; y += gridSize) {
             g.drawLine(0, y, width, y);
         }
+    }
+
+    private boolean canUpgrade(int slot) {
+        return getLevel(slot) < MAX_UPGRADE_LEVEL;
+    }
+
+    private void upgrade(int slot) {
+        if (!canUpgrade(slot)) {
+            status.setText("Already at max level!");
+            return;
+        }
+
+        if (upgradePoints <= 0) {
+            status.setText("No upgrade points!");
+            return;
+        }
+
+        upgradePoints--;
+
+        switch (slot) {
+
+            case 1 -> { // Health Regen
+                lvlHealthRegen++;
+                tank.upgradeHealthRegen(tank.healthRegenMultiplier);
+            }
+
+            case 2 -> { // Max Health
+                lvlTankMaxHealth++;
+                tank.upgradeMaxHealth(tank.maxHealthMultiplier);
+            }
+
+            case 3 -> { // Body Damage
+                lvlBodyDamage++;
+                tank.upgradeBodyDamage(tank.bodyDamageMultiplier);
+            }
+
+            case 4 -> { // Bullet Speed
+                lvlBulletSpeed++;
+                tank.upgradeBulletSpeed(tank.bulletSpeedMultiplier);
+            }
+
+            case 5 -> { // Bullet Damage
+                lvlBulletDamage++;
+                tank.upgradeBulletDamage(tank.bulletDamageMultiplier);
+            }
+
+            case 6 -> { // Bullet Penetration
+                lvlBulletPenetration++;
+                tank.upgradeBulletPenetration(tank.bulletPenetrationMultiplier);
+            }
+
+            case 7 -> { // Fire Rate
+                lvlFireRate++;
+                tank.upgradeFireRate(tank.fireRateMultiplier);
+            }
+
+            case 8 -> { // Movement Speed
+                lvlMovementSpeed++;
+                tank.upgradeMovementSpeed(1.1);
+                System.out.println(tank.getCurrentMovementSpeed());
+            }
+        }
+
+        status.setText("Upgraded #" + slot + " → Level " + getLevel(slot));
+    }
+
+
+    private int getLevel(int slot) {
+        return switch (slot) {
+            case 1 -> lvlHealthRegen;
+            case 2 -> lvlTankMaxHealth;
+            case 3 -> lvlBodyDamage;
+            case 4 -> lvlBulletSpeed;
+            case 5 -> lvlBulletDamage;
+            case 6 -> lvlBulletPenetration;
+            case 7 -> lvlFireRate;
+            case 8 -> lvlMovementSpeed;
+            default -> 0;
+        };
+    }
+
+    private void gainXP(int amount) {
+        xp += amount;
+
+        // Level up loop (handles large XP jumps)
+        while (xp >= xpToLevel) {
+            xp -= xpToLevel;
+            level++;
+
+            // give the player a point to spend
+            upgradePoints++;
+
+            // increase next threshold (optional)
+            xpToLevel = (int) (xpToLevel * 1.2);
+
+            status.setText("LEVEL UP! Level " + level + " — Upgrade points: " + upgradePoints);
+
+            // --- Advanced Tank Upgrade Milestones ---
+            if ((level == 15 || level == 30 || level == 45)
+                    && !(tank instanceof TwinTank)
+                    && !(tank instanceof SniperTank)
+                    && !(tank instanceof FlankGuardTank)
+                    && !(tank instanceof MachineGunTank)) {
+
+                String[] options = {"Twin", "Sniper", "Flank Guard", "Machine Gun"};
+
+                int choice = JOptionPane.showOptionDialog(
+                        this,
+                        "Choose your tank upgrade!",
+                        "Tank Upgrade",
+                        JOptionPane.DEFAULT_OPTION,
+                        JOptionPane.INFORMATION_MESSAGE,
+                        null,
+                        options,
+                        options[0]
+                );
+
+                Tank newTank = null;
+
+                if (choice == 0) {
+                    newTank = new TwinTank(tank.getPx(), tank.getPy(), COURT_WIDTH, COURT_HEIGHT);
+                } else if (choice == 1) {
+                    newTank = new SniperTank(tank.getPx(), tank.getPy(), COURT_WIDTH, COURT_HEIGHT);
+                } else if (choice == 2) {
+                    newTank = new FlankGuardTank(tank.getPx(), tank.getPy(), COURT_WIDTH, COURT_HEIGHT);
+                } else if (choice == 3) {
+                    newTank = new MachineGunTank(tank.getPx(), tank.getPy(), COURT_WIDTH, COURT_HEIGHT);
+                }
+
+                if (newTank != null) {
+                    newTank.setHealth(tank.getHealth());
+                    tank = newTank;
+                    ui.addHealthBar(new HealthBar(tank, 50));
+                    status.setText("Upgraded to " + options[choice] + "!");
+                }
+            }
+
+        }
+    }
+
+    private void drawXPBar(Graphics g) {
+        int barWidth = 300;
+        int barHeight = 20;
+        int x = (WINDOW_WIDTH - barWidth) / 2;
+        int y = WINDOW_HEIGHT - 40;
+
+        // background
+        g.setColor(Color.DARK_GRAY);
+        g.fillRect(x, y, barWidth, barHeight);
+
+        // fill amount
+        double percent = xp / (double) xpToLevel;
+        int fillWidth = (int)(percent * barWidth);
+
+        g.setColor(new Color(100, 200, 255)); // XP blue
+        g.fillRect(x, y, fillWidth, barHeight);
+
+        // border
+        g.setColor(Color.BLACK);
+        g.drawRect(x, y, barWidth, barHeight);
+
+        // text
+        g.setColor(Color.WHITE);
+        g.drawString("XP: " + xp + " / " + xpToLevel, x + 10, y + 15);
+    }
+
+    private void drawUpgradeBars(Graphics g) {
+        if (!showUpgradeBar) return;
+
+        int x = 20;
+        int y = WINDOW_HEIGHT - 240;   // bottom-left area
+        int barWidth = 180;
+        int barHeight = 20;
+        int spacing = 26;
+
+        drawUpgradeBar(g, "Health Regen", lvlHealthRegen, x, y, barWidth, barHeight);
+        drawUpgradeBar(g, "Max Health", lvlTankMaxHealth, x, y + spacing, barWidth, barHeight);
+        drawUpgradeBar(g, "Body Damage", lvlBodyDamage, x, y + spacing * 2, barWidth, barHeight);
+        drawUpgradeBar(g, "Bullet Speed", lvlBulletSpeed, x, y + spacing * 3, barWidth, barHeight);
+        drawUpgradeBar(g, "Bullet Damage", lvlBulletDamage, x, y + spacing * 4, barWidth, barHeight);
+        drawUpgradeBar(g, "Penetration", lvlBulletPenetration, x, y + spacing * 5, barWidth, barHeight);
+        drawUpgradeBar(g, "Fire Rate", lvlFireRate, x, y + spacing * 6, barWidth, barHeight);
+        drawUpgradeBar(g, "Move Speed", lvlMovementSpeed, x, y + spacing * 7, barWidth, barHeight);
+    }
+
+    private void drawUpgradeBar(Graphics g, String name, int level,
+                                int x, int y, int w, int h) {
+
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+                RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        // ---- Background Bar ----
+        g2.setColor(new Color(40, 40, 40));  // dark gray
+        g2.fillRoundRect(x, y, w, h, 6, 6);
+
+        // ---- Blue Fill ----
+        double percent = (double) level / MAX_UPGRADE_LEVEL;
+        int fillWidth = (int) (percent * w);
+
+        Color fillColor = new Color(80, 180, 255);
+        g2.setColor(fillColor);
+        g2.fillRoundRect(x, y, fillWidth, h, 6, 6);
+
+        // ---- Border ----
+        g2.setColor(Color.BLACK);
+        g2.drawRoundRect(x, y, w, h, 6, 6);
+
+        // ---- Text inside bar ----
+        g2.setColor(Color.WHITE);
+        g2.drawString(name, x + 6, y + h - 5);
     }
 
 
