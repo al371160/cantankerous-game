@@ -78,6 +78,7 @@ public abstract class Tank extends GameObj {
         this.level = oldTank.level;
         this.xp = oldTank.xp;
         this.upgradePoints = oldTank.upgradePoints;
+        this.fireRate = oldTank.fireRate;
         this.bulletSpeed = oldTank.bulletSpeed;
         this.bodyDamage = oldTank.bodyDamage;
         this.bulletDamage = oldTank.bulletDamage;

@@ -37,7 +37,6 @@ public class GameCourt extends JPanel {
     // the state of the game logic
     //private Square square; // the Black Square, keyboard control
     private Tank tank;
-    private Circle snitch; // the Golden Snitch, bounces
    //private Poison poison; // the Poison Mushroom, doesn't move
 
     private boolean playing = false; // whether the game is running
@@ -135,7 +134,7 @@ public class GameCourt extends JPanel {
                         if (e.getKeyCode() == KeyEvent.VK_1) {
                             // new game
                             gameState = GameState.PLAYING;
-
+                            reset();
                         }
                         if (e.getKeyCode() == KeyEvent.VK_2) {
                             loadSave(1);
@@ -159,14 +158,11 @@ public class GameCourt extends JPanel {
 
                     case DEAD -> {
                         if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                            //System.out.println("You lost!");
                             gameState = GameState.START_MENU;
-                            //repaint();
-                            //System.out.println(gameState);
                         }
                     }
                 }
-                if (gameState == gameState.PLAYING) {
+                if (gameState == GameState.PLAYING) {
                     switch (e.getKeyCode()) {
                         case KeyEvent.VK_Q -> showUpgradeBar = !showUpgradeBar;
                         case KeyEvent.VK_W -> wDown = true;
@@ -266,9 +262,6 @@ public class GameCourt extends JPanel {
         tank = new BaseTank(1000, 1000, COURT_WIDTH, COURT_HEIGHT);
         tank.setHealth(tank.getCurrentMaxHealth());
         tank.level = 0; // base level
-
-        // Create snitch
-        snitch = new Circle(COURT_WIDTH, COURT_HEIGHT, Color.YELLOW);
 
         // Spawn squares
         spawnObjects();
@@ -383,7 +376,6 @@ public class GameCourt extends JPanel {
         applyMovementForces();
         tank.move(strength);
         tank.trackMouse(mouseX, mouseY, camX, camY); // mouse in world coords
-        snitch.move(0);
 
         // --- Bullet interactions ---
         java.util.List<Bullet> toRemoveBullets = new java.util.ArrayList<>();
@@ -438,9 +430,7 @@ public class GameCourt extends JPanel {
 
         }
 
-        // --- Snitch bounces ---
-        snitch.bounce(snitch.hitWall());
-        for (Square sq : squares) snitch.bounce(snitch.hitObj(sq));
+
 
         // --- Tank collisions ---
         for (Square sq : squares) {
@@ -496,8 +486,7 @@ public class GameCourt extends JPanel {
             sq.draw(g, camX, camY);
         }
 
-        // draw snitch
-        if (snitch != null) snitch.draw(g, camX, camY);
+
 
         // draw bullets
         for (Bullet bullet : bullets) {
@@ -513,13 +502,16 @@ public class GameCourt extends JPanel {
         // draw XP and upgrade bars
         drawXPBar(g);
         drawUpgradeBars(g);
+
     }
 
 
     @Override
     public Dimension getPreferredSize() {
         return new Dimension(WINDOW_WIDTH, WINDOW_HEIGHT);
+
     }
+
 
     /*private void fireBullet() {
         Point tip = tank.getTurretTip();

@@ -35,10 +35,8 @@ public abstract class GameObj {
     private double fx = 0; // forces applied this frame
     private double fy = 0;
     private double mass = 1.0;
-    //private double frictionForce = .2; // decay per frame
     double maxSpeed = 3; //speed clamp
-    //physics
-    //double repulsionStrength = 1; // object repulsion strength
+
 
     //health
     protected int maxHealth = 0;
@@ -102,10 +100,6 @@ public abstract class GameObj {
     public void setHealth(int hp) {
         this.maxHealth = hp;
         this.health = hp;
-    }
-
-    public void upgradeHealth(int hp) {
-        this.maxHealth = hp;
     }
 
 
@@ -245,29 +239,6 @@ public abstract class GameObj {
                 && that.py + that.height >= this.py);
     }
 
-    /**
-     * Determine whether this game object will intersect another in the next
-     * time step, assuming that both objects continue with their current
-     * velocity.
-     *
-     * Intersection is determined by comparing bounding boxes. If the bounding
-     * boxes (for the next time step) overlap, then an intersection is
-     * considered to occur.
-     *
-     * @param that The other object
-     * @return Whether an intersection will occur.
-     */
-    public boolean willIntersect(GameObj that) {
-        int thisNextX = (int) (this.px + this.vx);
-        int thisNextY = (int) (this.py + this.vy);
-        int thatNextX = (int) (that.px + that.vx);
-        int thatNextY = (int) (that.py + that.vy);
-
-        return (thisNextX + this.width >= thatNextX
-                && thisNextY + this.height >= thatNextY
-                && thatNextX + that.width >= thisNextX
-                && thatNextY + that.height >= thisNextY);
-    }
 
     /**
      * Update the velocity of the object in response to hitting an obstacle in
@@ -321,130 +292,6 @@ public abstract class GameObj {
         }
     }
 
-    /**
-     * Returns the collision angle (0–360 degrees) from this object to another.
-     * 0°   = pointing right
-     * 90°  = down
-     * 180° = left
-     * 270° = up
-     *
-     * Returns -1 if there will NOT be an intersection.
-     */
-    public double collisionAngle(GameObj that) {
-        if (!this.willIntersect(that)) {
-            return -1;
-        }
 
-        double halfThisW = this.width / 2.0;
-        double halfThisH = this.height / 2.0;
-        double halfThatW = that.width / 2.0;
-        double halfThatH = that.height / 2.0;
-
-        // center points
-        double cx = this.px + halfThisW;
-        double cy = this.py + halfThisH;
-        double ox = that.px + halfThatW;
-        double oy = that.py + halfThatH;
-
-        // difference vector
-        double dx = ox - cx;
-        double dy = oy - cy;
-
-        // atan2 returns angle in radians, GUI coordinates have inverted Y
-        double angleRad = Math.atan2(dy, dx);
-
-        // convert to degrees
-        double angleDeg = Math.toDegrees(angleRad);
-
-        // normalize 0-360
-        if (angleDeg < 0) {
-            angleDeg += 360;
-        }
-
-        return angleDeg;
-    }
-
-
-    /**
-     * Determine whether the game object will hit another object in the next
-     * time step. If so, return the direction of the other object in relation to
-     * this game object.
-     *
-     * As you read through the code, it might be useful to draw things out and
-     * visualize the unit circle.
-     *
-     * @param that The other object
-     * @return Direction of impending object after collision, or null if no
-     *         collision.
-     */
-    public Direction hitObj(GameObj that) {
-        if (this.willIntersect(that)) {
-            /*
-             * Note that this.px + halfThiswidth = position of the rightmost side of the
-             * object,
-             * and this.py + halfThisheight = position of the top side of the object.
-             * The reason why we are getting these measures is to be able to calculate the
-             * above.
-             */
-            double halfThiswidth = (double) this.width / 2;
-            double halfThatwidth = (double) that.width / 2;
-            double halfThisheight = (double) this.height / 2;
-            double halfThatheight = (double) that.height / 2;
-            final double PI_OVER_4 = Math.PI / 4;
-
-            /*
-             * dx represents the horizontal distance between "this" and "that".
-             * dy represents the vertical distance between "this" and "that".
-             * We are getting these measures because we are trying to build a triangle
-             * in order to calculate an angle (more specifically, the angle between
-             * adjacent and hypotenuse through arc-cosine).
-             */
-            double dx = that.px + halfThatwidth - (this.px + halfThiswidth);
-            double dy = that.py + halfThatheight - (this.py + halfThisheight);
-            double theta = Math.acos(dx / (Math.sqrt(dx * dx + dy * dy)));
-
-            /*
-             * As you read through the following, it will be useful to visualize
-             * the unit circle
-             * Link: https://etc.usf.edu/clipart/43200/43205/unit-circle13_43205.htm
-             */
-            if (theta <= PI_OVER_4) {
-                /*
-                 * For example, if theta is >= 0 and <= pi/4, after collision
-                 * "that" must be going right
-                 */
-                return Direction.RIGHT;
-            } else if (theta <= Math.PI - PI_OVER_4) {
-                /*
-                 * Remember that the coordinate system for GUIs is switched; this means
-                 * since (0,0) is in the top left corner, if "this" is above "that", it will
-                 * have
-                 * a lower y-value, and dy will therefore be positive. In this case, since
-                 * "that"
-                 * is below "this", "that" will be moving downards post-collision.
-                 */
-                if (dy > 0) {
-                    return Direction.DOWN;
-                } else {
-                    return Direction.UP;
-                }
-            } else {
-                return Direction.LEFT;
-            }
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * Default draw method that provides how the object should be drawn in the
-     * GUI. This method does not draw anything. Subclass should override this
-     * method based on how their object should appear.
-     *
-     * @param g The <code>Graphics</code> context used for drawing the object.
-     *          Remember graphics contexts that we used in OCaml, it gives the
-     *          context in which the object should be drawn (a canvas, a frame,
-     *          etc.)
-     */
     public abstract void draw(Graphics g, double camX, double camY);
 }

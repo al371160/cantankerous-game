@@ -37,9 +37,9 @@ public class RunCantankerous implements Runnable {
         // define it as an anonymous inner class that is an instance of
         // ActionListener with its actionPerformed() method overridden. When the
         // button is pressed, actionPerformed() will be called.
-        final JButton reset = new JButton("Reset");
-        reset.addActionListener(e -> court.reset());
-        control_panel.add(reset);
+        //final JButton reset = new JButton("Reset");
+        //reset.addActionListener(e -> court.reset());
+        //control_panel.add(reset);
 
         // Put the frame on the screen
         frame.pack();
