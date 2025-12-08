@@ -160,7 +160,6 @@ public abstract class GameObj {
     /** applies a force to an object. will decelerate in
      */
     public void applyForce(double fx, double fy) {
-        //System.out.println("force applying...");
         this.fx += fx;
         this.fy += fy;
     }
@@ -221,7 +220,7 @@ public abstract class GameObj {
      *
      */
     public void takeDamage(int amount) {
-        health -= amount;
+        this.health -= amount;
         if (health < 0) health = 0;
     }
 

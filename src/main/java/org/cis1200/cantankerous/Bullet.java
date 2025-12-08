@@ -33,7 +33,4 @@ public class Bullet extends GameObj {
         g2.drawOval(x, y, SIZE, SIZE);
     }
 
-    public void upgradeBulletSpeed() {
-        //this.maxSpeed *= 1.2;
-    }
 }

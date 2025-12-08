@@ -2,6 +2,9 @@ package org.cis1200.cantankerous;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.util.Scanner;
 import javax.swing.*;
 
 /**
@@ -12,6 +15,17 @@ import javax.swing.*;
  * different methods and how it repaints the GUI on every tick().
  */
 public class GameCourt extends JPanel {
+
+    //all panels activated in one scene lol
+    public enum GameState {
+        START_MENU,
+        LOAD_SAVE,
+        PLAYING,
+        PAUSED,
+        DEAD
+    }
+
+    private GameState gameState = GameState.START_MENU;
 
     //CAMERA!!
     private double camX = 0;
@@ -30,8 +44,8 @@ public class GameCourt extends JPanel {
     private final JLabel status; // Current status text, i.e. "Running..."
 
     // Game constants
-    public static final int COURT_WIDTH = 5000;
-    public static final int COURT_HEIGHT = 3000;
+    public static final int COURT_WIDTH = 2000;
+    public static final int COURT_HEIGHT = 2000;
     public static final int WINDOW_WIDTH = 960;
     public static final int WINDOW_HEIGHT = 540;
     //public static final int TANK_VELOCITY = 4;
@@ -68,7 +82,7 @@ public class GameCourt extends JPanel {
     private int upgradePoints = 0;    // points you can spend upgrading
     private int level = 1;            // player level
     //ITEM XP GAINS
-    private int squareXP = 8000;
+    private int squareXP = 670;
     //UPGRADE BAR
     private boolean showUpgradeBar = true;   // Q toggles this
     private static final int MAX_UPGRADE_LEVEL = 8;
@@ -77,31 +91,6 @@ public class GameCourt extends JPanel {
         return String.format("%.2f", d);
     }
 
-
-
-    /**
-    //STATS
-    public int healthRegen = 1;
-    public int tankMaxHealth = 750;
-    public double bodyDamage = 1;
-    public double bulletSpeed = 5;
-    public int bulletDamage = 30;
-    public int bulletPenetration = 1;
-    //public int fireRate = 10;           // ticks between bullets (≈350ms)
-    // public int movementSpeed = 1; (this variable is unused as movement speed is upgraded in
-
-
-    // Upgrade multipliers
-    private final double healthRegenMultiplier = 1.2;
-    private final double tankMaxHealthMultiplier = 1.3;
-    private final double bodyDamageMultiplier = 1.1;
-    private final double bulletSpeedMultiplier = 1.2;
-    private final double bulletDamageMultiplier = 1.3;
-    private final double bulletPenetrationMultiplier = 1.1;
-    private final double fireRateMultiplier = 0.9; // lower is faster
-    private final double movementSpeedMultiplier = 2;
-
-     */
     //level trackers:
     private int lvlHealthRegen = 0;
     private int lvlTankMaxHealth = 0;
@@ -135,22 +124,66 @@ public class GameCourt extends JPanel {
         addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                switch (e.getKeyCode()) {
-                    case KeyEvent.VK_Q -> showUpgradeBar = !showUpgradeBar;
-                    case KeyEvent.VK_W -> wDown = true;
-                    case KeyEvent.VK_A -> aDown = true;
-                    case KeyEvent.VK_S -> sDown = true;
-                    case KeyEvent.VK_D -> dDown = true;
-                    case KeyEvent.VK_1 -> upgrade(1);
-                    case KeyEvent.VK_2 -> upgrade(2);
-                    case KeyEvent.VK_3 -> upgrade(3);
-                    case KeyEvent.VK_4 -> upgrade(4);
-                    case KeyEvent.VK_5 -> upgrade(5);
-                    case KeyEvent.VK_6 -> upgrade(6);
-                    case KeyEvent.VK_7 -> upgrade(7);
-                    case KeyEvent.VK_8 -> upgrade(8);
-                }
+                switch (gameState) {
 
+                    case START_MENU -> {
+                        if (e.getKeyCode() == KeyEvent.VK_ENTER)
+                            gameState = GameState.LOAD_SAVE;
+                    }
+
+                    case LOAD_SAVE -> {
+                        if (e.getKeyCode() == KeyEvent.VK_1) {
+                            // new game
+                            gameState = GameState.PLAYING;
+
+                        }
+                        if (e.getKeyCode() == KeyEvent.VK_2) {
+                            loadSave(1);
+                            gameState = GameState.PLAYING;
+                        }
+                    }
+
+                    case PLAYING -> {
+                        if (e.getKeyCode() == KeyEvent.VK_ESCAPE)
+                            gameState = GameState.PAUSED;
+                    }
+
+                    case PAUSED -> {
+                        if (e.getKeyCode() == KeyEvent.VK_ESCAPE)
+                            gameState = GameState.PLAYING;
+                        if (e.getKeyCode() == KeyEvent.VK_Q)
+                            gameState = GameState.START_MENU;
+                        if (e.getKeyCode() == KeyEvent.VK_U)
+                            saveGame(1);
+                    }
+
+                    case DEAD -> {
+                        if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                            //System.out.println("You lost!");
+                            gameState = GameState.START_MENU;
+                            //repaint();
+                            //System.out.println(gameState);
+                        }
+                    }
+                }
+                if (gameState == gameState.PLAYING) {
+                    switch (e.getKeyCode()) {
+                        case KeyEvent.VK_Q -> showUpgradeBar = !showUpgradeBar;
+                        case KeyEvent.VK_W -> wDown = true;
+                        case KeyEvent.VK_A -> aDown = true;
+                        case KeyEvent.VK_S -> sDown = true;
+                        case KeyEvent.VK_D -> dDown = true;
+                        case KeyEvent.VK_1 -> upgrade(1);
+                        case KeyEvent.VK_2 -> upgrade(2);
+                        case KeyEvent.VK_3 -> upgrade(3);
+                        case KeyEvent.VK_4 -> upgrade(4);
+                        case KeyEvent.VK_5 -> upgrade(5);
+                        case KeyEvent.VK_6 -> upgrade(6);
+                        case KeyEvent.VK_7 -> upgrade(7);
+                        case KeyEvent.VK_8 -> upgrade(8);
+                    }
+
+                }
             }
 
             @Override
@@ -205,36 +238,34 @@ public class GameCourt extends JPanel {
         });
 
 
-
-        //shooting
-        addMouseListener(new MouseAdapter() {
-            @Override
-            public void mousePressed(MouseEvent e) {
-                mouseDown = true;
-                //fireBullet();
-            }
-
-            @Override
-            public void mouseReleased(MouseEvent e) {
-                mouseDown = false;
-            }
-        });
-
-
         this.status = status;
     }
 
-    /**
-     * (Re-)set the game to its initial state.
-     */
+    //RESET
     public void reset() {
         // Clear bullets
         bullets.clear();
 
-        // Create tank first
-        tank = new BaseTank(2500, 1500, COURT_WIDTH, COURT_HEIGHT);
-        tank.setHealth(tank.getCurrentMaxHealth());
+        // Reset player stats
+        xp = 0;
+        level = 0;
+        upgradePoints = 0;
 
+        lvlHealthRegen = 0;
+        lvlTankMaxHealth = 0;
+        lvlBodyDamage = 0;
+        lvlBulletSpeed = 0;
+        lvlBulletDamage = 0;
+        lvlBulletPenetration = 0;
+        lvlFireRate = 0;
+        lvlMovementSpeed = 0;
+
+        xpToLevel = 100; // reset XP threshold
+
+        // Create base tank at default location
+        tank = new BaseTank(1000, 1000, COURT_WIDTH, COURT_HEIGHT);
+        tank.setHealth(tank.getCurrentMaxHealth());
+        tank.level = 0; // base level
 
         // Create snitch
         snitch = new Circle(COURT_WIDTH, COURT_HEIGHT, Color.YELLOW);
@@ -262,18 +293,19 @@ public class GameCourt extends JPanel {
         requestFocusInWindow();
     }
 
+
     public void spawnObjects() {
         squares.clear();
 
         java.util.Random rand = new java.util.Random();
 
-        int numSquares = 70; // change this to spawn more/less
+        int numSquares = 400; // change this to spawn more/less
 
         Rectangle tankRect = new Rectangle(
-                tank.getPx(),
-                tank.getPy(),
-                tank.getWidth(),
-                tank.getHeight()
+                1000,
+                1000,
+                80,
+                80
         );
 
         for (int i = 0; i < numSquares; i++) {
@@ -284,7 +316,7 @@ public class GameCourt extends JPanel {
                 x = rand.nextInt(COURT_WIDTH - Square.SIZE);
                 y = rand.nextInt(COURT_HEIGHT - Square.SIZE);
             } while (tankRect.intersects(new Rectangle(x, y, Square.SIZE, Square.SIZE)));
-
+            //so it can finally stop displaying high levels after game start.
             Square sq = new Square(COURT_WIDTH, COURT_HEIGHT, Color.YELLOW);
 
 
@@ -293,7 +325,6 @@ public class GameCourt extends JPanel {
             sq.setPy(y);
             //set square health
             sq.setHealth(50);
-
 
             squares.add(sq);
 
@@ -337,6 +368,10 @@ public class GameCourt extends JPanel {
      */
     void tick() {
         if (!playing) return;
+
+        if (gameState == GameState.PLAYING && tank.getHealth() <= 0) {
+            gameState = GameState.DEAD;
+        }
 
         // --- Camera: center on tank ---
         double targetCamX = tank.getPx() - WINDOW_WIDTH / 2.0 + tank.getWidth() / 2.0;
@@ -403,7 +438,6 @@ public class GameCourt extends JPanel {
 
         }
 
-
         // --- Snitch bounces ---
         snitch.bounce(snitch.hitWall());
         for (Square sq : squares) snitch.bounce(snitch.hitObj(sq));
@@ -421,7 +455,7 @@ public class GameCourt extends JPanel {
                     toRemoveSquares.add(sq);
 
                     // award XP
-                    gainXP(20);   // you can tune the amount
+                    gainXP(squareXP);   // you can tune the amount
                 }
 
             }
@@ -444,29 +478,42 @@ public class GameCourt extends JPanel {
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        // draw background grid first
+        switch(gameState) {
+            case START_MENU -> drawStartScreen(g);
+            case LOAD_SAVE -> drawLoadSaveScreen(g);
+            case PLAYING -> drawGame(g);
+            case PAUSED -> drawPauseScreen(g);
+            case DEAD -> drawDeathScreen(g);
+        }
+    }
+
+    private void drawGame(Graphics g) {
+        // draw background grid
         drawGrid(g, camX, camY);
 
-        //double camX = tank.getPx() - COURT_WIDTH / 2.0;
-        //double camY = tank.getPy() - COURT_HEIGHT / 2.0;
-
+        // draw squares
         for (Square sq : squares) {
             sq.draw(g, camX, camY);
         }
 
-        snitch.draw(g, camX, camY);
+        // draw snitch
+        if (snitch != null) snitch.draw(g, camX, camY);
 
+        // draw bullets
         for (Bullet bullet : bullets) {
             bullet.draw(g, camX, camY);
         }
 
-        tank.draw(g, camX, camY);
+        // draw tank
+        if (tank != null) tank.draw(g, camX, camY);
 
-        ui.draw(g, camX, camY); // pass camera coordinates here
+        // draw UI
+        ui.draw(g, camX, camY);
+
+        // draw XP and upgrade bars
         drawXPBar(g);
         drawUpgradeBars(g);
     }
-
 
 
     @Override
@@ -572,7 +619,8 @@ public class GameCourt extends JPanel {
 
             case 4 -> { // Bullet Speed
                 lvlBulletSpeed++;
-                tank.upgradeBulletSpeed(tank.bulletSpeedMultiplier);
+                tank.upgradeBulletSpeed(1.1);
+
             }
 
             case 5 -> { // Bullet Damage
@@ -593,7 +641,6 @@ public class GameCourt extends JPanel {
             case 8 -> { // Movement Speed
                 lvlMovementSpeed++;
                 tank.upgradeMovementSpeed(1.1);
-                System.out.println(tank.getCurrentMovementSpeed());
             }
         }
 
@@ -747,6 +794,169 @@ public class GameCourt extends JPanel {
         g2.drawString(name, x + 6, y + h - 5);
     }
 
+    private void drawStartScreen(Graphics g) {
+        g.setColor(Color.BLACK);
+        g.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 40));
+        g.drawString("CANTANKEROUS", 280, 200);
+
+        g.setFont(new Font("Arial", Font.PLAIN, 24));
+        g.drawString("Press ENTER to Start", 320, 300);
+
+        g.setFont(new Font("Arial", Font.PLAIN, 15));
+        g.drawString("This is a diep.io clone game! user any of the number keys to upgrade", 220, 400);
+        g.drawString("the tank (and if you want, hit q to close the menu). WASD to move.", 220, 420);
+        g.drawString("Left click to shoot. Mouse around to aim. [ESC] to pause. Other", 220, 440);
+        g.drawString("actions are displayed in various menus", 220, 460);
+
+
+
+    }
+
+    private void drawLoadSaveScreen(Graphics g) {
+        g.setColor(Color.DARK_GRAY);
+        g.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 36));
+        g.drawString("Load Save", 380, 150);
+
+        g.setFont(new Font("Arial", Font.PLAIN, 24));
+        g.drawString("1: New Game", 350, 250);
+        g.drawString("2: Load Save", 350, 300);
+    }
+
+
+    private void drawPauseScreen(Graphics g) {
+        // dim background
+        g.setColor(new Color(0, 0, 0, 150));
+        g.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 36));
+        g.drawString("PAUSED", 400, 200);
+
+        g.setFont(new Font("Arial", Font.PLAIN, 24));
+        g.drawString("Press ESC to Resume", 340, 280);
+        g.drawString("Press Q to Quit", 370, 330);
+        g.drawString("Press U to Save Game", 340, 380); // <-- new line added
+    }
+
+
+    private void drawDeathScreen(Graphics g) {
+        g.setColor(Color.BLACK);
+        g.fillRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+        g.setColor(Color.RED);
+        g.setFont(new Font("Arial", Font.BOLD, 36));
+        g.drawString("YOU DIED", 380, 200);
+
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.PLAIN, 36));
+        g.drawString("Press ENTER to Restart", 310, 300);
+    }
+
+
+    public void saveGame(int slot) {
+        try {
+            FileWriter writer = new FileWriter("save" + slot + ".txt");
+
+            // --- Save Upgrade Levels (0-8) ---
+            writer.write(lvlHealthRegen + "\n");
+            writer.write(lvlTankMaxHealth + "\n");
+            writer.write(lvlBodyDamage + "\n");
+            writer.write(lvlBulletSpeed + "\n");
+            writer.write(lvlBulletDamage + "\n");
+            writer.write(lvlBulletPenetration + "\n");
+            writer.write(lvlFireRate + "\n");
+            writer.write(lvlMovementSpeed + "\n");
+
+            // --- Save XP, Level, Upgrade Points ---
+            writer.write(xp + "\n");
+            writer.write(level + "\n");
+            writer.write(upgradePoints + "\n");
+
+            // --- Save Tank Position ---
+            writer.write(tank.getPx() + "\n");
+            writer.write(tank.getPy() + "\n");
+
+            // --- Save Squares ---
+            writer.write(squares.size() + "\n");
+            for (Square sq : squares) {
+                writer.write(sq.getPx() + "," + sq.getPy() + "\n");
+            }
+
+            writer.close();
+            status.setText("Game saved in slot " + slot + "!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            status.setText("Failed to save game!");
+        }
+    }
+
+    public void loadSave(int slot) {
+        try {
+            FileReader reader = new FileReader("save" + slot + ".txt");
+            Scanner sc = new Scanner(reader);
+
+            // --- Load Upgrade Levels ---
+            lvlHealthRegen = Integer.parseInt(sc.nextLine());
+            lvlTankMaxHealth = Integer.parseInt(sc.nextLine());
+            lvlBodyDamage = Integer.parseInt(sc.nextLine());
+            lvlBulletSpeed = Integer.parseInt(sc.nextLine());
+            lvlBulletDamage = Integer.parseInt(sc.nextLine());
+            lvlBulletPenetration = Integer.parseInt(sc.nextLine());
+            lvlFireRate = Integer.parseInt(sc.nextLine());
+            lvlMovementSpeed = Integer.parseInt(sc.nextLine());
+
+            // --- Load XP, Level, Upgrade Points ---
+            xp = Integer.parseInt(sc.nextLine());
+            level = Integer.parseInt(sc.nextLine());
+            upgradePoints = Integer.parseInt(sc.nextLine());
+
+            // --- Load Tank Position ---
+            int tankX = Integer.parseInt(sc.nextLine());
+            int tankY = Integer.parseInt(sc.nextLine());
+            tank = new BaseTank(tankX,  tankY, COURT_WIDTH, COURT_HEIGHT);
+            tank.setHealth(tank.getCurrentMaxHealth());
+
+            // --- Apply upgrades based on saved levels ---
+            for (int i = 0; i < lvlHealthRegen; i++) tank.upgradeHealthRegen(tank.healthRegenMultiplier);
+            for (int i = 0; i < lvlTankMaxHealth; i++) tank.upgradeMaxHealth(tank.maxHealthMultiplier);
+            for (int i = 0; i < lvlBodyDamage; i++) tank.upgradeBodyDamage(tank.bodyDamageMultiplier);
+            for (int i = 0; i < lvlBulletSpeed; i++) tank.upgradeBulletSpeed(1.1);
+            for (int i = 0; i < lvlBulletDamage; i++) tank.upgradeBulletDamage(tank.bulletDamageMultiplier);
+            for (int i = 0; i < lvlBulletPenetration; i++) tank.upgradeBulletPenetration(tank.bulletPenetrationMultiplier);
+            for (int i = 0; i < lvlFireRate; i++) tank.upgradeFireRate(tank.fireRateMultiplier);
+            for (int i = 0; i < lvlMovementSpeed; i++) tank.upgradeMovementSpeed(1.1);
+
+            // --- Load Squares ---
+            squares.clear();
+            int numSquares = Integer.parseInt(sc.nextLine());
+            for (int i = 0; i < numSquares; i++) {
+                String[] coords = sc.nextLine().split(",");
+                int x = Integer.parseInt(coords[0]);
+                int y = Integer.parseInt(coords[1]);
+                Square sq = new Square(COURT_WIDTH, COURT_HEIGHT, Color.YELLOW);
+                sq.setPx(x);
+                sq.setPy(y);
+                sq.setHealth(50);
+                squares.add(sq);
+                ui.addHealthBar(new HealthBar(sq, 30));
+            }
+
+            // --- Add Tank Health Bar ---
+            ui.addHealthBar(new HealthBar(tank, 50));
+
+            sc.close();
+            status.setText("Loaded save slot " + slot + "!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            status.setText("Failed to load save.");
+        }
+    }
 
 
 }

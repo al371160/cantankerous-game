@@ -14,11 +14,7 @@ public class TwinTank extends Tank {
     public TwinTank(int px, int py, int courtWidth, int courtHeight) {
         super(px, py, courtWidth, courtHeight);
         // Only set different base stats if needed
-        // e.g., if you want TwinTank to start slightly faster or stronger
-        // setBaseBulletSpeed(6);
-        // setBaseRecoilStrength(0.8);
-        // setBaseBulletPenetration(1);
-        // setBaseFireRate(10);
+        fireRate = 10;
 
         updateFireRate();
     }
@@ -117,21 +113,23 @@ public class TwinTank extends Tank {
         double currentRecoil = recoilStrength; // can be upgraded too if you have a multiplier
         applyForce(-finalDirX * currentRecoil, -finalDirY * currentRecoil);
 
-        double currentBulletSpeed = getCurrentBulletSpeed();
+        double velX = getCurrentBulletSpeed() * finalDirX;
+        double velY = getCurrentBulletSpeed() * finalDirY;
         int currentBulletPen = getCurrentBulletPenetration();
 
-        bullets.add(new Bullet(
-                currentBulletSpeed * finalDirX,
-                currentBulletSpeed * finalDirY,
+        Bullet b = new Bullet(
+                velX,
+                velY,
                 tip.x - Bullet.SIZE / 2.0,
                 tip.y - Bullet.SIZE / 2.0,
                 GameCourt.COURT_WIDTH,
                 GameCourt.COURT_HEIGHT,
                 Color.GREEN,
                 currentBulletPen
-        ));
+        );
 
-
+        b.maxSpeed = getCurrentBulletSpeed();
+        bullets.add(b);
         fireLeftTurret = !fireLeftTurret; // alternate next shot
     }
 

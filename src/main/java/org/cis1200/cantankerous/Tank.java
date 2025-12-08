@@ -13,7 +13,7 @@ public abstract class Tank extends GameObj {
     protected int xp = 0;
     protected int upgradePoints = 0;
 
-    protected int maxHealth = 100;
+    protected int maxHealth = 750;
     protected int healthRegen = 1;
     protected double bulletSpeed = 3;
     protected double bodyDamage = 1;
@@ -24,7 +24,7 @@ public abstract class Tank extends GameObj {
     protected double movementSpeed = 3;
 
     protected double bulletSpread = 0;
-    protected int fireRate = 10;
+    protected int fireRate = 18;
 
     // Multipliers for upgrades
     protected double bulletSpeedMultiplier = 1.0;
@@ -38,7 +38,7 @@ public abstract class Tank extends GameObj {
 
     public Tank(int px, int py, int courtWidth, int courtHeight) {
         super(0, 0, px, py, 30, 30, courtWidth, courtHeight);
-        updateFireRate(); // initialize fire rate
+        updateFireRate();
     }
 
     // ===== Mouse Tracking =====
@@ -65,7 +65,7 @@ public abstract class Tank extends GameObj {
         return new Point((int) tipX, (int) tipY);
     }
 
-    // ===== Abstract Tank Behaviors =====
+    //parent classes
     public abstract void draw(Graphics g, double camX, double camY);
     public abstract void fire(List<Bullet> bullets);
     public abstract String getName();
@@ -73,8 +73,8 @@ public abstract class Tank extends GameObj {
 
     // ===== Copy State =====
     public void copyStateFrom(Tank oldTank) {
-        this.health = oldTank.health;
-        this.maxHealth = oldTank.maxHealth;
+
+        this.setHealth(oldTank.getHealth());
         this.level = oldTank.level;
         this.xp = oldTank.xp;
         this.upgradePoints = oldTank.upgradePoints;
@@ -94,11 +94,8 @@ public abstract class Tank extends GameObj {
         this.fireRateMultiplier = oldTank.fireRateMultiplier;
     }
 
-    // ===== Damage =====
-    public void takeDamage(int dmg) {
-        health -= dmg;
-        if (health < 0) health = 0;
-    }
+
+
 
     public boolean isDead() {
         return health <= 0;
@@ -124,7 +121,6 @@ public abstract class Tank extends GameObj {
 
     public void upgradeMaxHealth(double factor) {
         maxHealthMultiplier *= factor;
-        health = getCurrentMaxHealth(); // heal to new max
     }
 
     public void upgradeBulletPenetration(double factor) {

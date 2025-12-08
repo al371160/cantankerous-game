@@ -11,6 +11,7 @@ public class BaseTank extends Tank {
 
     public BaseTank(int px, int py, int courtWidth, int courtHeight) {
         super(px, py, courtWidth, courtHeight);
+        //maxHealth = 750;
         fireRate = 18;
         fireRateMultiplier = 1;
         updateFireRate();
@@ -28,7 +29,7 @@ public class BaseTank extends Tank {
         g2.rotate(Math.toRadians(angleDeg), cx, cy);
 
         // ---------- Draw Turret ----------
-        int turretWidth = getHeight() - 12;
+        int turretWidth = getHeight() - 15;
         int turretX = (int) (getPx() - camX + 15);  // adjust for rectangle placement
         int turretY = (int) (getPy() - camY + 6);
         int turretLength = getWidth();  // can make longer for sniper tank
@@ -56,8 +57,8 @@ public class BaseTank extends Tank {
     @Override
     public void fire(List<Bullet> bullets) {
         Point tip = getTurretTip();
-        double velX = bulletSpeed * Math.cos(angleRad);
-        double velY = bulletSpeed * Math.sin(angleRad);
+        double velX = getCurrentBulletSpeed() * Math.cos(angleRad);
+        double velY = getCurrentBulletSpeed() * Math.sin(angleRad);
 
         Bullet b = new Bullet(
                 velX,
@@ -70,9 +71,9 @@ public class BaseTank extends Tank {
                 bulletPenetration
         );
 
+        b.maxSpeed = getCurrentBulletSpeed();
         applyForce(-velX * recoilStrength, -velY * recoilStrength);
         bullets.add(b);
-        b.maxSpeed = bulletSpeed;
 
         // Apply recoil to tank
         this.applyForce(-velX * recoilStrength, -velY * recoilStrength);
