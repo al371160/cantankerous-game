@@ -13,7 +13,7 @@ public class SniperTank extends Tank {
         super(px, py, courtWidth, courtHeight);
         this.bulletSpeed = 10; // faster bullets
         this.recoilStrength = 1;
-        this.bulletPenetration = 2; // can pierce more
+        this.bulletPenetration = 3; // can pierce more
     }
 
     public void draw(Graphics g, double camX, double camY) {
@@ -57,13 +57,16 @@ public class SniperTank extends Tank {
 
         applyForce(-velX * recoilStrength, -velY * recoilStrength);
 
-        bullets.add(new Bullet(
+        Bullet b = new Bullet(
                 velX, velY,
                 tip.x - Bullet.SIZE/2.0,
                 tip.y - Bullet.SIZE/2.0,
                 GameCourt.COURT_WIDTH,
                 GameCourt.COURT_HEIGHT,
-                Color.RED, this.bulletPenetration));
+                Color.RED, this.bulletPenetration);
+
+        b.maxSpeed = getCurrentBulletSpeed();
+        bullets.add(b);
     }
 
     @Override

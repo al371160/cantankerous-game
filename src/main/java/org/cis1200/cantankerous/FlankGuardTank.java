@@ -92,33 +92,42 @@ public class FlankGuardTank extends Tank {
                 (int)(getPy() + getHeight()/2 + perpY * spacing - dirY * barrelDistance)
         );
 
-        // which turret fires
+        Bullet b;
+
         if (fireLeftTurret) {
-            // LEFT → forward
-            bullets.add(new Bullet(
+            b = new Bullet(
                     bulletSpeed * dirX,
                     bulletSpeed * dirY,
-                    leftTip.x - Bullet.SIZE/2.0,
-                    leftTip.y - Bullet.SIZE/2.0,
+                    leftTip.x - Bullet.SIZE / 2.0,
+                    leftTip.y - Bullet.SIZE / 2.0,
                     GameCourt.COURT_WIDTH,
                     GameCourt.COURT_HEIGHT,
                     Color.GREEN,
                     this.bulletPenetration
-            ));
+            );
         } else {
-            // RIGHT → backward (reverse direction)
-            bullets.add(new Bullet(
+            b = new Bullet(
                     bulletSpeed * -dirX,
                     bulletSpeed * -dirY,
-                    rightTip.x - Bullet.SIZE/2.0,
-                    rightTip.y - Bullet.SIZE/2.0,
+                    rightTip.x - Bullet.SIZE / 2.0,
+                    rightTip.y - Bullet.SIZE / 2.0,
                     GameCourt.COURT_WIDTH,
                     GameCourt.COURT_HEIGHT,
                     Color.GREEN,
                     this.bulletPenetration
-            ));
+            );
         }
 
+        b.maxSpeed = getCurrentBulletSpeed();
+
+        bullets.add(b);
+
+
+        double velX = b.getVx();
+        double velY = b.getVy();
+        this.applyForce(-velX * recoilStrength, -velY * recoilStrength);
+
+        // Swap turret for next shot
         fireLeftTurret = !fireLeftTurret;
     }
 

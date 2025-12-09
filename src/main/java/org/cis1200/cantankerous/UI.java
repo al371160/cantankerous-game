@@ -15,6 +15,10 @@ public class UI {
         healthBars.remove(hb);
     }
 
+    public void ClearHealthBars() {
+        healthBars.clear();
+    }
+
     public HealthBar getHealthBarFor(GameObj obj) {
         for (HealthBar hb : healthBars) {
             if (hb.getTarget() == obj) {

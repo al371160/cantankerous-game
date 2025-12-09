@@ -8,7 +8,7 @@ public abstract class Tank extends GameObj {
     protected double angleDeg = 0;
     protected double angleRad = 0;
 
-    protected int health = 100;
+    protected int health = 750;
     protected int level = 1;
     protected int xp = 0;
     protected int upgradePoints = 0;
@@ -30,11 +30,11 @@ public abstract class Tank extends GameObj {
     protected double bulletSpeedMultiplier = 1.0;
     protected double bulletDamageMultiplier = 1.0;
     protected double bodyDamageMultiplier = 1.0;
-    protected double movementSpeedMultiplier = 1.0;
-    protected double healthRegenMultiplier = 1.0;
+    protected double healthRegenMultiplier = 0.5;
     protected double maxHealthMultiplier = 1.0;
     protected double bulletPenetrationMultiplier = 1.0;
-    protected double fireRateMultiplier = 1.0;
+    protected double fireRateMultiplier = 1;
+    protected double movementSpeedMultiplier = 1.0;
 
     public Tank(int px, int py, int courtWidth, int courtHeight) {
         super(0, 0, px, py, 30, 30, courtWidth, courtHeight);
@@ -96,7 +96,17 @@ public abstract class Tank extends GameObj {
     }
 
 
+    public void regenerateHealth() {
+        // how much to regen per tick
+        double regenAmount = getCurrentHealthRegen();
 
+        if (super.health < getCurrentMaxHealth()) {
+            super.health += regenAmount;
+            if (health > getCurrentMaxHealth()) {
+                health = getCurrentMaxHealth();
+            }
+        }
+    }
 
     public boolean isDead() {
         return health <= 0;

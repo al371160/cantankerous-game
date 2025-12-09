@@ -13,6 +13,6 @@ public class Game {
         Runnable game = new org.cis1200.cantankerous.RunCantankerous();
 
         SwingUtilities.invokeLater(game);
-        //what
+        //;p
     }
 }

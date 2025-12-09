@@ -1,6 +1,6 @@
 package org.cis1200.cantankerous;
 
-import org.cis1200.mushroom.Direction;
+import org.cis1200.cantankerous.Direction;
 
 import java.awt.*;
 

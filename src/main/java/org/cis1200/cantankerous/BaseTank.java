@@ -12,8 +12,6 @@ public class BaseTank extends Tank {
     public BaseTank(int px, int py, int courtWidth, int courtHeight) {
         super(px, py, courtWidth, courtHeight);
         //maxHealth = 750;
-        fireRate = 18;
-        fireRateMultiplier = 1;
         updateFireRate();
     }
 

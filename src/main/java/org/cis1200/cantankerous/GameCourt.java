@@ -377,6 +377,9 @@ public class GameCourt extends JPanel {
         tank.move(strength);
         tank.trackMouse(mouseX, mouseY, camX, camY); // mouse in world coords
 
+        // --- Health Regen ---
+        tank.regenerateHealth();
+
         // --- Bullet interactions ---
         java.util.List<Bullet> toRemoveBullets = new java.util.ArrayList<>();
         java.util.List<Square> toRemoveSquares = new java.util.ArrayList<>();
@@ -426,11 +429,7 @@ public class GameCourt extends JPanel {
 
                 }
             }
-
-
         }
-
-
 
         // --- Tank collisions ---
         for (Square sq : squares) {
@@ -486,8 +485,6 @@ public class GameCourt extends JPanel {
             sq.draw(g, camX, camY);
         }
 
-
-
         // draw bullets
         for (Bullet bullet : bullets) {
             bullet.draw(g, camX, camY);
@@ -511,33 +508,6 @@ public class GameCourt extends JPanel {
         return new Dimension(WINDOW_WIDTH, WINDOW_HEIGHT);
 
     }
-
-
-    /*private void fireBullet() {
-        Point tip = tank.getTurretTip();
-
-        double bulletVelX = bulletSpeed * Math.cos(tank.angleRad);
-        double bulletVelY = bulletSpeed * Math.sin(tank.angleRad);
-
-        Bullet bullet = new Bullet(
-                bulletVelX,
-                bulletVelY,
-                tip.x - Bullet.SIZE / 2.0,
-                tip.y - Bullet.SIZE / 2.0,
-                COURT_WIDTH,
-                COURT_HEIGHT,
-                Color.blue, 2
-        );
-
-        bullet.maxSpeed = bulletSpeed;
-        bullet.penetration = bulletPenetration;
-        bullet.maxLifetime = bullet.penetration * 67; // example: base 100, +20 per penetration
-        bullet.lifetime = bullet.maxLifetime;
-
-        tank.applyForce(-bulletVelX * recoilStrength, -bulletVelY * recoilStrength);
-
-        bullets.add(bullet);
-    } */
 
     private void updateHealthBars() {
         // Squares
@@ -596,7 +566,8 @@ public class GameCourt extends JPanel {
 
             case 1 -> { // Health Regen
                 lvlHealthRegen++;
-                tank.upgradeHealthRegen(tank.healthRegenMultiplier);
+                tank.upgradeHealthRegen(1.2);
+                System.out.println(tank.getCurrentHealthRegen());
             }
 
             case 2 -> { // Max Health
@@ -627,7 +598,7 @@ public class GameCourt extends JPanel {
 
             case 7 -> { // Fire Rate
                 lvlFireRate++;
-                tank.upgradeFireRate(tank.fireRateMultiplier);
+                tank.upgradeFireRate(0.99);
             }
 
             case 8 -> { // Movement Speed
@@ -707,6 +678,13 @@ public class GameCourt extends JPanel {
                     tank = newTank;
                     ui.addHealthBar(new HealthBar(tank, 50));
                     status.setText("Upgraded to " + options[choice] + "!");
+
+                    wDown = false;
+                    aDown = false;
+                    sDown = false;
+                    dDown = false;
+                    mouseDown = false;
+                    ui.ClearHealthBars();
                 }
             }
 
@@ -718,6 +696,7 @@ public class GameCourt extends JPanel {
         int barHeight = 20;
         int x = (WINDOW_WIDTH - barWidth) / 2;
         int y = WINDOW_HEIGHT - 40;
+
 
         // background
         g.setColor(Color.DARK_GRAY);
@@ -908,6 +887,12 @@ public class GameCourt extends JPanel {
             level = Integer.parseInt(sc.nextLine());
             upgradePoints = Integer.parseInt(sc.nextLine());
 
+            // ensure xpbar doesn't kill itself
+            xpToLevel = 100;
+            for (int i = 1; i <= level; i++) {
+                xpToLevel = (int)(xpToLevel * 1.2);
+            }
+
             // --- Load Tank Position ---
             int tankX = Integer.parseInt(sc.nextLine());
             int tankY = Integer.parseInt(sc.nextLine());
@@ -925,6 +910,7 @@ public class GameCourt extends JPanel {
             for (int i = 0; i < lvlMovementSpeed; i++) tank.upgradeMovementSpeed(1.1);
 
             // --- Load Squares ---
+            ui.ClearHealthBars();
             squares.clear();
             int numSquares = Integer.parseInt(sc.nextLine());
             for (int i = 0; i < numSquares; i++) {

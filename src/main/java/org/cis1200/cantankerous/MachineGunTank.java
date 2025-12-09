@@ -15,8 +15,10 @@ public class MachineGunTank extends Tank {
     public MachineGunTank(int px, int py, int courtWidth, int courtHeight) {
         super(px, py, courtWidth, courtHeight);
         this.bulletSpread = 15;   // ±7.5° spread
-        this.fireRate = 2;        // very high fire rate (ticks between shots)
-        this.bulletSpeed = 8;     // slightly faster bullets
+        updateFireRate();
+        this.fireRate = 6;        // very high fire rate (ticks between shots)
+        System.out.println("Fire Rate: " + fireRate);
+        this.bulletSpeed = 5;     // slightly faster bullets
         this.recoilStrength = 0.5;
         this.bulletPenetration = 1;
     }
@@ -32,7 +34,7 @@ public class MachineGunTank extends Tank {
         var old = g2.getTransform();
         g2.rotate(angleRad, cx, cy);
 
-        // ---------- Draw Trapezoidal Turret ----------
+        //bugged ah turret
         int turretLength = getWidth();
         int turretHeight = getHeight() - 12;
         int topWidth = turretLength - 8;  // top is narrower
@@ -50,7 +52,7 @@ public class MachineGunTank extends Tank {
         g2.setStroke(new BasicStroke(2));
         g2.drawPolygon(turret);
 
-        // ---------- Draw Tank Body ----------
+
         g2.setColor(blue);
         g2.fillOval((int)(getPx() - camX), (int)(getPy() - camY), getWidth(), getHeight());
         g2.setColor(darkBlue);
@@ -82,7 +84,7 @@ public class MachineGunTank extends Tank {
         );
 
         bullets.add(b);
-        b.maxSpeed = bulletSpeed;
+        b.maxSpeed = getCurrentBulletSpeed();
 
         // Apply recoil to tank
         this.applyForce(-velX * recoilStrength, -velY * recoilStrength);
