@@ -12,8 +12,8 @@ public class Square extends GameObj {
     public static final int INIT_POS_Y = 0;
     public static final int INIT_VEL_X = 0;
     public static final int INIT_VEL_Y = 0;
+    public static final int squareXP = 670;
 
-    private final Color color;
     Color yellow = new Color(255, 232, 105);
     Color darkYellow = new Color(191, 174, 78);
 
@@ -22,10 +22,8 @@ public class Square extends GameObj {
      * a Square, we simply use the superclass constructor called with the
      * correct parameters.
      */
-    public Square(int courtWidth, int courtHeight, Color color) {
+    public Square(int courtWidth, int courtHeight) {
         super(INIT_VEL_X, INIT_VEL_Y, INIT_POS_X, INIT_POS_Y, SIZE, SIZE, courtWidth, courtHeight);
-
-        this.color = color;
     }
 
 
@@ -45,7 +43,6 @@ public class Square extends GameObj {
         g2.setStroke(new BasicStroke(2)); // 2-pixel thick outline
         g2.drawRect(x, y, w, h);
     }
-
 
 
 }

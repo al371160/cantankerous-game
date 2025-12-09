@@ -1,12 +1,10 @@
 package org.cis1200.cantankerous;
 
-import org.cis1200.cantankerous.Direction;
-
 import java.awt.*;
 
 /**
  * An object in the game.
- *
+ * <p>
  * Game objects exist in the game court. They have a position, velocity, size
  * and bounds. Their velocity controls how they move; their position should
  * always be within their bounds.
@@ -30,11 +28,8 @@ public abstract class GameObj {
     private double vx;
     private double vy;
 
-    private double ax = 0; //accel
-    private double ay = 0;
     private double fx = 0; // forces applied this frame
     private double fy = 0;
-    private double mass = 1.0;
     double maxSpeed = 3; //speed clamp
 
 
@@ -116,14 +111,6 @@ public abstract class GameObj {
         clip();
     }
 
-    public void setVx(double vx) {
-        this.vx = vx;
-    }
-
-    public void setVy(double vy) {
-        this.vy = vy;
-    }
-
     public int getHealth() {
         return health;
     }
@@ -151,13 +138,13 @@ public abstract class GameObj {
         this.py = Math.min(Math.max(this.py, 0), this.maxY);
     }
 
-    /** applies a force to an object. will decelerate in
+    /**
+     * applies a force to an object. will decelerate in
      */
     public void applyForce(double fx, double fy) {
         this.fx += fx;
         this.fy += fy;
     }
-
 
 
     /**
@@ -166,8 +153,9 @@ public abstract class GameObj {
      */
     public void move(double frictionForce) {
         // 1. acceleration from forces
-        ax = fx / mass;
-        ay = fy / mass;
+        //accel
+        double ax = fx;
+        double ay = fy;
 
         // 2. update velocity
         vx += ax;
@@ -178,7 +166,7 @@ public abstract class GameObj {
         vy = applyFriction(vy, frictionForce);
 
         // 4. clamp speed for stability
-        double speed = Math.sqrt(vx*vx + vy*vy);
+        double speed = Math.sqrt(vx * vx + vy * vy);
         if (speed > maxSpeed) {
             vx = vx / speed * maxSpeed;
             vy = vy / speed * maxSpeed;
@@ -225,7 +213,7 @@ public abstract class GameObj {
     /**
      * Determine whether this game object is currently intersecting another
      * object.
-     *
+     * <p>
      * Intersection is determined by comparing bounding boxes. If the bounding
      * boxes overlap, then an intersection is considered to occur.
      *

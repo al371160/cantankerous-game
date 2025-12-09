@@ -41,7 +41,7 @@ public class UpgradeSystemTest {
         tank.upgradeBulletDamage(2.0);
 
         // integer output, so cast expected
-        int expected = (int)(base * 4);
+        int expected = (int) (base * 4);
 
         assertEquals(expected, tank.getCurrentBulletDamage());
     }
@@ -91,7 +91,7 @@ public class UpgradeSystemTest {
         tank.upgradeBulletPenetration(3.0); // x3
         tank.upgradeBulletPenetration(2.0); // x2
 
-        int expected = (int)(base * 3 * 2);
+        int expected = base * 3 * 2;
 
         assertEquals(expected, tank.getCurrentBulletPenetration());
     }
@@ -126,7 +126,6 @@ public class UpgradeSystemTest {
 
     @Test
     public void testMovementSpeedSynchronizesWithMaxSpeed() {
-        double before = tank.maxSpeed;
 
         tank.upgradeMovementSpeed(2.0);
 

@@ -4,10 +4,10 @@ import java.awt.*;
 import java.util.List;
 
 public class TwinTank extends Tank {
-    private Color blue = new Color(0, 178, 225);
-    private Color darkBlue = new Color(2, 133, 167);
-    private Color lightGray = new Color(153, 153, 153);
-    private Color darkGray = new Color(114, 114, 114);
+    private final Color blue = new Color(0, 178, 225);
+    private final Color darkBlue = new Color(2, 133, 167);
+    private final Color lightGray = new Color(153, 153, 153);
+    private final Color darkGray = new Color(114, 114, 114);
 
     private boolean fireLeftTurret = true; // toggle for alternating shots
 
@@ -79,27 +79,7 @@ public class TwinTank extends Tank {
 
     @Override
     public void fire(List<Bullet> bullets) {
-        double dirX = Math.cos(angleRad);
-        double dirY = Math.sin(angleRad);
-
-        double perpX = -Math.sin(angleRad);
-        double perpY = Math.cos(angleRad);
-
-        double spacing = 4;
-        double barrelDistance = getWidth()/2.0 + 10;
-
-        // Compute turret tips
-        Point leftTip = new Point(
-                (int)(getPx() + getWidth()/2  + perpX * -spacing + dirX * barrelDistance),
-                (int)(getPy() + getHeight()/2 + perpY * -spacing + dirY * barrelDistance)
-        );
-
-        Point rightTip = new Point(
-                (int)(getPx() + getWidth()/2  + perpX * spacing + dirX * barrelDistance),
-                (int)(getPy() + getHeight()/2 + perpY * spacing + dirY * barrelDistance)
-        );
-
-        Point tip = fireLeftTurret ? leftTip : rightTip;
+        Point tip = getPoint();
 
         // --- Apply random spread ---
         double spreadRad = Math.toRadians(bulletSpread);
@@ -131,6 +111,31 @@ public class TwinTank extends Tank {
         b.maxSpeed = getCurrentBulletSpeed();
         bullets.add(b);
         fireLeftTurret = !fireLeftTurret; // alternate next shot
+    }
+
+    private Point getPoint() {
+        double dirX = Math.cos(angleRad);
+        double dirY = Math.sin(angleRad);
+
+        double perpX = -Math.sin(angleRad);
+        double perpY = Math.cos(angleRad);
+
+        double spacing = 4;
+        double barrelDistance = getWidth() / 2.0 + 10;
+
+        // Compute turret tips
+        Point leftTip = new Point(
+                (int) (getPx() + (double) getWidth() / 2 + perpX * -spacing + dirX * barrelDistance),
+                (int) (getPy() + (double) getHeight() / 2 + perpY * -spacing + dirY * barrelDistance)
+        );
+
+        Point rightTip = new Point(
+                (int) (getPx() + (double) getWidth() / 2 + perpX * spacing + dirX * barrelDistance),
+                (int) (getPy() + (double) getHeight() / 2 + perpY * spacing + dirY * barrelDistance)
+        );
+
+        Point tip = fireLeftTurret ? leftTip : rightTip;
+        return tip;
     }
 
 

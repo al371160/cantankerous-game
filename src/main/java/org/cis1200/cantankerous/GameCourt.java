@@ -1,15 +1,15 @@
 package org.cis1200.cantankerous;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.util.Scanner;
-import javax.swing.*;
 
 /**
  * GameCourt
- *
+ * <p>
  * This class holds the primary game logic for how different objects interact
  * with one another. Take time to understand how the timer interacts with the
  * different methods and how it repaints the GUI on every tick().
@@ -30,14 +30,14 @@ public class GameCourt extends JPanel {
     //CAMERA!!
     private double camX = 0;
     private double camY = 0;
-    private double camSpeed = 0.1; //interpolate
+    private final double camSpeed = 0.1; //interpolate
 
     //UI variable
     private UI ui = new UI();
     // the state of the game logic
     //private Square square; // the Black Square, keyboard control
     private Tank tank;
-   //private Poison poison; // the Poison Mushroom, doesn't move
+    //private Poison poison; // the Poison Mushroom, doesn't move
 
     private boolean playing = false; // whether the game is running
     private final JLabel status; // Current status text, i.e. "Running..."
@@ -66,29 +66,25 @@ public class GameCourt extends JPanel {
     private int mouseY;
 
     //spawned objects
-    private java.util.List<Square> squares = new java.util.ArrayList<>();
-    private java.util.List<Bullet> bullets = new java.util.ArrayList<>();
+    private final java.util.List<Square> squares = new java.util.ArrayList<>();
+    private final java.util.List<Bullet> bullets = new java.util.ArrayList<>();
 
     //firing
     private boolean mouseDown = false;
     private int fireCooldown = 0;      // counts down each tick
-    public double recoilStrength = 0.5; /** should be CHANGED PER TANK!!! */
 
-    /** \/\/\/\/\/\/\/\/\/[    UPGRADES!!!!!    ]/\/\/\/\/\/\/\/\//\/\\/\/\/\/\*/
+    /**
+     * \/\/\/\/\/\/\/\/\/[    UPGRADES!!!!!    ]/\/\/\/\/\/\/\/\//\/\\/\/\/\/\
+     */
     // XP AND LEVELS
     private int xp = 0;
     private int xpToLevel = 100;
     private int upgradePoints = 0;    // points you can spend upgrading
     private int level = 1;            // player level
-    //ITEM XP GAINS
-    private int squareXP = 670;
+
     //UPGRADE BAR
     private boolean showUpgradeBar = true;   // Q toggles this
     private static final int MAX_UPGRADE_LEVEL = 8;
-
-    private String format(double d) {
-        return String.format("%.2f", d);
-    }
 
     //level trackers:
     private int lvlHealthRegen = 0;
@@ -202,7 +198,7 @@ public class GameCourt extends JPanel {
                 mouseY = e.getY();
                 if (tank != null) {
                     // convert screen coords to world coords using camera offset
-                    tank.trackMouse(mouseX, mouseY,camX, camY);
+                    tank.trackMouse(mouseX, mouseY, camX, camY);
                 }
             }
 
@@ -212,7 +208,7 @@ public class GameCourt extends JPanel {
                 mouseY = e.getY();
                 if (tank != null) {
                     // convert screen coords to world coords using camera offset
-                    tank.trackMouse(mouseX, mouseY,camX, camY);
+                    tank.trackMouse(mouseX, mouseY, camX, camY);
                 }
             }
         });
@@ -310,7 +306,7 @@ public class GameCourt extends JPanel {
                 y = rand.nextInt(COURT_HEIGHT - Square.SIZE);
             } while (tankRect.intersects(new Rectangle(x, y, Square.SIZE, Square.SIZE)));
             //so it can finally stop displaying high levels after game start.
-            Square sq = new Square(COURT_WIDTH, COURT_HEIGHT, Color.YELLOW);
+            Square sq = new Square(COURT_WIDTH, COURT_HEIGHT);
 
 
             // place square manually
@@ -416,7 +412,6 @@ public class GameCourt extends JPanel {
                     bullet.penetration--;
 
 
-
                     if (sq.isDead()) {
                         // remove health bar
                         HealthBar hb = ui.getHealthBarFor(sq);
@@ -424,7 +419,7 @@ public class GameCourt extends JPanel {
                         toRemoveSquares.add(sq);
 
                         // award XP
-                        gainXP(squareXP);   // you can tune the amount
+                        gainXP(Square.squareXP);   // you can tune the amount
                     }
 
                 }
@@ -444,7 +439,7 @@ public class GameCourt extends JPanel {
                     toRemoveSquares.add(sq);
 
                     // award XP
-                    gainXP(squareXP);   // you can tune the amount
+                    gainXP(Square.squareXP);   // you can tune the amount
                 }
 
             }
@@ -467,7 +462,7 @@ public class GameCourt extends JPanel {
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        switch(gameState) {
+        switch (gameState) {
             case START_MENU -> drawStartScreen(g);
             case LOAD_SAVE -> drawLoadSaveScreen(g);
             case PLAYING -> drawGame(g);
@@ -535,12 +530,12 @@ public class GameCourt extends JPanel {
         int height = getHeight();
 
         // vertical lines
-        for (int x = (int)(-camX % gridSize); x < width; x += gridSize) {
+        for (int x = (int) (-camX % gridSize); x < width; x += gridSize) {
             g.drawLine(x, 0, x, height);
         }
 
         // horizontal lines
-        for (int y = (int)(-camY % gridSize); y < height; y += gridSize) {
+        for (int y = (int) (-camY % gridSize); y < height; y += gridSize) {
             g.drawLine(0, y, width, y);
         }
     }
@@ -704,7 +699,7 @@ public class GameCourt extends JPanel {
 
         // fill amount
         double percent = xp / (double) xpToLevel;
-        int fillWidth = (int)(percent * barWidth);
+        int fillWidth = (int) (percent * barWidth);
 
         g.setColor(new Color(100, 200, 255)); // XP blue
         g.fillRect(x, y, fillWidth, barHeight);
@@ -781,7 +776,6 @@ public class GameCourt extends JPanel {
         g.drawString("the tank (and if you want, hit q to close the menu). WASD to move.", 220, 420);
         g.drawString("Left click to shoot. Mouse around to aim. [ESC] to pause. Other", 220, 440);
         g.drawString("actions are displayed in various menus", 220, 460);
-
 
 
     }
@@ -890,13 +884,13 @@ public class GameCourt extends JPanel {
             // ensure xpbar doesn't kill itself
             xpToLevel = 100;
             for (int i = 1; i <= level; i++) {
-                xpToLevel = (int)(xpToLevel * 1.2);
+                xpToLevel = (int) (xpToLevel * 1.2);
             }
 
             // --- Load Tank Position ---
             int tankX = Integer.parseInt(sc.nextLine());
             int tankY = Integer.parseInt(sc.nextLine());
-            tank = new BaseTank(tankX,  tankY, COURT_WIDTH, COURT_HEIGHT);
+            tank = new BaseTank(tankX, tankY, COURT_WIDTH, COURT_HEIGHT);
             tank.setHealth(tank.getCurrentMaxHealth());
 
             // --- Apply upgrades based on saved levels ---
@@ -905,7 +899,8 @@ public class GameCourt extends JPanel {
             for (int i = 0; i < lvlBodyDamage; i++) tank.upgradeBodyDamage(tank.bodyDamageMultiplier);
             for (int i = 0; i < lvlBulletSpeed; i++) tank.upgradeBulletSpeed(1.1);
             for (int i = 0; i < lvlBulletDamage; i++) tank.upgradeBulletDamage(tank.bulletDamageMultiplier);
-            for (int i = 0; i < lvlBulletPenetration; i++) tank.upgradeBulletPenetration(tank.bulletPenetrationMultiplier);
+            for (int i = 0; i < lvlBulletPenetration; i++)
+                tank.upgradeBulletPenetration(tank.bulletPenetrationMultiplier);
             for (int i = 0; i < lvlFireRate; i++) tank.upgradeFireRate(tank.fireRateMultiplier);
             for (int i = 0; i < lvlMovementSpeed; i++) tank.upgradeMovementSpeed(1.1);
 
@@ -917,7 +912,7 @@ public class GameCourt extends JPanel {
                 String[] coords = sc.nextLine().split(",");
                 int x = Integer.parseInt(coords[0]);
                 int y = Integer.parseInt(coords[1]);
-                Square sq = new Square(COURT_WIDTH, COURT_HEIGHT, Color.YELLOW);
+                Square sq = new Square(COURT_WIDTH, COURT_HEIGHT);
                 sq.setPx(x);
                 sq.setPy(y);
                 sq.setHealth(50);

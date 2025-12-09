@@ -59,8 +59,8 @@ public class SniperTank extends Tank {
 
         Bullet b = new Bullet(
                 velX, velY,
-                tip.x - Bullet.SIZE/2.0,
-                tip.y - Bullet.SIZE/2.0,
+                tip.x - Bullet.SIZE / 2.0,
+                tip.y - Bullet.SIZE / 2.0,
                 GameCourt.COURT_WIDTH,
                 GameCourt.COURT_HEIGHT,
                 Color.RED, this.bulletPenetration);

@@ -41,10 +41,10 @@ public class MachineGunTank extends Tank {
         int bottomWidth = turretLength;   // bottom full width
 
         Polygon turret = new Polygon();
-        turret.addPoint(cx - bottomWidth / 2+10, cy - turretHeight / 2); // bottom-left
-        turret.addPoint(cx + bottomWidth / 2+10, cy - turretHeight / 2); // bottom-right
-        turret.addPoint(cx + topWidth / 2+10, cy + turretHeight / 2);    // top-right
-        turret.addPoint(cx - topWidth / 2+10, cy + turretHeight / 2);    // top-left
+        turret.addPoint(cx - bottomWidth / 2 + 10, cy - turretHeight / 2); // bottom-left
+        turret.addPoint(cx + bottomWidth / 2 + 10, cy - turretHeight / 2); // bottom-right
+        turret.addPoint(cx + topWidth / 2 + 10, cy + turretHeight / 2);    // top-right
+        turret.addPoint(cx - topWidth / 2 + 10, cy + turretHeight / 2);    // top-left
 
         g2.setColor(lightGray);
         g2.fillPolygon(turret);
@@ -54,10 +54,10 @@ public class MachineGunTank extends Tank {
 
 
         g2.setColor(blue);
-        g2.fillOval((int)(getPx() - camX), (int)(getPy() - camY), getWidth(), getHeight());
+        g2.fillOval((int) (getPx() - camX), (int) (getPy() - camY), getWidth(), getHeight());
         g2.setColor(darkBlue);
         g2.setStroke(new BasicStroke(2));
-        g2.drawOval((int)(getPx() - camX), (int)(getPy() - camY), getWidth(), getHeight());
+        g2.drawOval((int) (getPx() - camX), (int) (getPy() - camY), getWidth(), getHeight());
 
         // Restore old transform
         g2.setTransform(old);

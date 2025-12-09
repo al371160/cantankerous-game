@@ -21,7 +21,7 @@ public class UI {
 
     public HealthBar getHealthBarFor(GameObj obj) {
         for (HealthBar hb : healthBars) {
-            if (hb.getTarget() == obj) {
+            if (hb.target() == obj) {
                 return hb;
             }
         }

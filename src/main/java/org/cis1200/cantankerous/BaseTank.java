@@ -32,20 +32,20 @@ public class BaseTank extends Tank {
         int turretY = (int) (getPy() - camY + 6);
         int turretLength = getWidth();  // can make longer for sniper tank
 
-        g2.setColor(Color.GRAY);
+        g2.setColor(lightGray);
         g2.fillRect(turretX, turretY, turretLength, turretWidth);
 
-        g2.setColor(Color.DARK_GRAY);
+        g2.setColor(darkGray);
         g2.setStroke(new BasicStroke(2));
         g2.drawRect(turretX, turretY, turretLength, turretWidth);
 
         // ---------- Draw Tank Body ----------
-        g2.setColor(new Color(0, 178, 225));
-        g2.fillOval((int)(getPx() - camX), (int)(getPy() - camY), getWidth(), getHeight());
+        g2.setColor(blue);
+        g2.fillOval((int) (getPx() - camX), (int) (getPy() - camY), getWidth(), getHeight());
 
-        g2.setColor(new Color(2, 133, 167));
+        g2.setColor(darkBlue);
         g2.setStroke(new BasicStroke(2));
-        g2.drawOval((int)(getPx() - camX), (int)(getPy() - camY), getWidth(), getHeight());
+        g2.drawOval((int) (getPx() - camX), (int) (getPy() - camY), getWidth(), getHeight());
 
         // Restore old transform
         g2.setTransform(old);
